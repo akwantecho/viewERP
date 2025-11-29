@@ -1,0 +1,22 @@
+{
+    "Home": "الرئيسية",
+    "Welcome": "مرحبًا",
+    "This page is fully localized and direction-aware.": "هذه الصفحة مترجمة بالكامل ومتوافقة مع اتجاه اللغة.",
+    "Continue": "متابعة",
+    "Logout": "تسجيل الخروج",
+    "Profile": "الملف الشخصي",
+    "Login": "تسجيل الدخول",
+    "Dashboard": "لوحة التحكم",
+    "Notifications": "الإشعارات",
+    "Language": "اللغة",
+    "Close": "إغلاق",
+    "Save": "حفظ",
+    "Cancel": "إلغاء",
+    "Delete": "حذف",
+    "Yes": "نعم",
+    "No": "لا",
+    "Search": "بحث",
+    "Settings": "الإعدادات",
+    "Reports": "التقارير",
+    "Payments": "الدفعات"
+}

@@ -1,0 +1,363 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Project;
+use App\Models\Unit;
+use App\Models\Floor;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+
+
+
+class ProjectController extends Controller
+{
+    public function __construct()
+    {
+        // Allow only super admin to access edit/update/saveStructure
+        $this->middleware('super')->only(['create', 'store', 'edit', 'update', 'saveStructure', 'structureForm']);
+    }
+    public function index()
+{
+    $projects = Project::withCount([
+        'floors',
+        'units',
+        'units as reserved_units_count' => function ($query) {
+            $query->whereIn('status', ['reserved', 'sold']);
+        },
+        'units as available_units_count' => function ($query) {
+            $query->where('status', 'available');
+        },
+    ])->get();
+
+    return view('projects.index', compact('projects'));
+}
+
+
+
+    public function create()
+    {
+        return view('projects.create');
+    }
+
+    public function store(Request $request)
+    {
+        // Normalize code to uppercase before validation to enforce case-insensitive uniqueness
+        $request->merge(['code' => strtoupper(trim((string) $request->input('code')))]);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'code' => 'required|string|max:100|unique:projects,code',
+            'notes' => 'nullable|string',
+            'floors' => 'nullable|array',
+            'floors.*.name' => 'required|string',
+            'floors.*.units' => 'nullable|array',
+            'floors.*.units.*.name' => 'nullable|string',
+        ], [
+            'code.unique' => 'Project code already exists. Please use a unique code.',
+        ]);
+
+        // Business rule: a project must contain at least one unit
+        $unitsTotal = 0;
+        foreach (($validated['floors'] ?? []) as $floorData) {
+            $units = $floorData['units'] ?? [];
+            foreach ($units as $u) {
+                if (trim((string) ($u['name'] ?? '')) !== '') {
+                    $unitsTotal++;
+                }
+            }
+        }
+        if ($unitsTotal === 0) {
+            return back()
+                ->withErrors(['units' => 'At least one unit is required to create a project.'])
+                ->withInput();
+        }
+
+        $project = Project::create([
+            'name' => $validated['name'],
+            'code' => strtoupper($validated['code']),
+            'notes' => $validated['notes'] ?? null,
+            'floors_count' => count($validated['floors'] ?? []),
+        ]);
+
+        if (!empty($validated['floors'])) {
+            foreach ($validated['floors'] as $floorData) {
+                $floor = $project->floors()->create([
+                    'name' => $floorData['name'],
+                ]);
+
+                if (!empty($floorData['units'])) {
+                    foreach ($floorData['units'] as $i => $unitData) {
+                        $floor->units()->create([
+                            'unit_code' => $this->generateUniqueUnitCode($project->code, $floor->name),
+                            'status' => 'available',
+                        ]);
+                    }
+                }
+            }
+        }
+
+        return redirect()->route('projects.show', $project->id)
+                         ->with('success', 'Project created successfully.');
+    }
+
+    public function show(Project $project)
+    {
+        // Count for header stats
+        $project->loadCount('floors');
+
+        // Paginate units for this project; keep query string for per_page
+        $perPage = (int) request('per_page', 20);
+        if ($perPage <= 0) { $perPage = 20; }
+
+        $units = $project->units()
+            ->with('floor')
+            ->orderBy('unit_code')
+            ->paginate($perPage)
+            ->withQueryString();
+
+        return view('projects.show', compact('project', 'units'));
+    }
+
+    public function edit(Project $project)
+    {
+        $project->load(['floors.units']);
+        return view('projects.edit', compact('project'));
+    }
+
+    public function update(Request $request, Project $project)
+    {
+        // Normalize code to uppercase before validation for consistent uniqueness
+        if ($request->has('code')) {
+            $request->merge(['code' => strtoupper(trim((string) $request->input('code')))]);
+        }
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'code' => 'required|string|max:100|unique:projects,code,' . $project->id,
+            'notes' => 'nullable|string',
+            'floors' => 'sometimes|array',
+            'floors.*.id' => 'nullable|integer',
+            'floors.*.name' => 'required_with:floors|string|max:255',
+            'floors.*.delete' => 'nullable|boolean',
+            'floors.*.units' => 'sometimes|array',
+            'floors.*.units.*.id' => 'nullable|integer',
+            'floors.*.units.*.unit_code' => 'nullable|string|max:100',
+            'floors.*.units.*.delete' => 'nullable|boolean',
+        ], [
+            'code.unique' => 'Project code already exists. Please use a unique code.',
+        ]);
+
+        $errors = [];
+        $success = [];
+
+        \DB::transaction(function () use ($project, $validated, &$errors) {
+            // Update project basic info
+            $project->update([
+                'name' => $validated['name'],
+                'code' => strtoupper($validated['code']),
+                'notes' => $validated['notes'] ?? null,
+            ]);
+
+            $project->load(['floors.units']);
+            $existingFloors = $project->floors->keyBy('id');
+
+            foreach (($validated['floors'] ?? []) as $fIdx => $floorData) {
+                $floorId = $floorData['id'] ?? null;
+                $deleteFloor = (bool) ($floorData['delete'] ?? false);
+                $floorName = $floorData['name'] ?? null;
+
+                if ($floorId) {
+                    // Existing floor
+                    $floor = $existingFloors->get((int) $floorId);
+                    if (!$floor) { continue; }
+
+                    if ($deleteFloor) {
+                        // Do not allow deleting floor that has reserved/sold units
+                        $hasLockedUnits = $floor->units()->whereIn('status', ['reserved','sold'])->exists();
+                        if ($hasLockedUnits) {
+                            $errors[] = "Cannot delete floor '{$floor->name}' with reserved/sold units.";
+                        } else {
+                            // Delete all available units, then floor
+                            $deletedUnits = $floor->units()->where('status', 'available')->count();
+                            $floor->units()->where('status', 'available')->delete();
+                            $fname = $floor->name;
+                            $floor->delete();
+                            $success[] = "Deleted floor '{$fname}'" . ($deletedUnits ? " and {$deletedUnits} available units" : '') . '.';
+                        }
+                        continue;
+                    }
+
+                    // Update floor name
+                    if ($floorName && $floorName !== $floor->name) {
+                        $floor->update(['name' => $floorName]);
+                    }
+
+                    // Handle units for existing floor
+                    $existingUnits = $floor->units->keyBy('id');
+                    foreach (($floorData['units'] ?? []) as $uIdx => $unitData) {
+                        $unitId = $unitData['id'] ?? null;
+                        $deleteUnit = (bool) ($unitData['delete'] ?? false);
+                        $newCode = trim($unitData['unit_code'] ?? '');
+
+                        if ($unitId) {
+                            $unit = $existingUnits->get((int) $unitId);
+                            if (!$unit) { continue; }
+
+                            if ($deleteUnit) {
+                                if ($unit->status === 'available') {
+                                    $uc = $unit->unit_code;
+                                    $unit->delete();
+                                    $success[] = "Deleted unit {$uc}.";
+                                } else {
+                                    $errors[] = "Cannot delete unit {$unit->unit_code} (status: {$unit->status}).";
+                                }
+                                continue;
+                            }
+
+                            // Update unit code if available
+                            if ($newCode !== '' && $newCode !== $unit->unit_code) {
+                                if ($unit->status !== 'available') {
+                                    $errors[] = "Cannot edit unit {$unit->unit_code} (status: {$unit->status}).";
+                                } elseif (\App\Models\Unit::where('unit_code', $newCode)->where('id', '!=', $unit->id)->exists()) {
+                                    $errors[] = "Unit code '{$newCode}' already exists.";
+                                } else {
+                                    $unit->update(['unit_code' => $newCode]);
+                                }
+                            }
+                        } else {
+                            // New unit row
+                            $auto = ($newCode === '' || strtoupper($newCode) === 'AUTO');
+                            if ($auto) {
+                                $newCode = $this->generateUniqueUnitCode($project->code, $floor->name);
+                            }
+                            if ($newCode !== '') {
+                                if (\App\Models\Unit::where('unit_code', $newCode)->exists()) {
+                                    $errors[] = "Unit code '{$newCode}' already exists.";
+                                } else {
+                                    $floor->units()->create([
+                                        'unit_code' => $newCode,
+                                        'status' => 'available',
+                                    ]);
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // New floor
+                    if (!$floorName) { continue; }
+                    $newFloor = $project->floors()->create(['name' => $floorName]);
+
+                    foreach (($floorData['units'] ?? []) as $unitData) {
+                        $newCode = trim($unitData['unit_code'] ?? '');
+                        $auto = ($newCode === '' || strtoupper($newCode) === 'AUTO');
+                        if ($auto) {
+                            $newCode = $this->generateUniqueUnitCode($project->code, $newFloor->name);
+                        }
+                        if ($newCode === '') { continue; }
+                        if (\App\Models\Unit::where('unit_code', $newCode)->exists()) {
+                            $errors[] = "Unit code '{$newCode}' already exists.";
+                            continue;
+                        }
+                        $newFloor->units()->create([
+                            'unit_code' => $newCode,
+                            'status' => 'available',
+                        ]);
+                    }
+                }
+            }
+        });
+
+        // log activity (always record an update attempt by superadmin)
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('activities')) {
+                \App\Models\Activity::create([
+                    'user_id' => optional(request()->user())->id,
+                    'action' => 'project.update',
+                    'entity_type' => \App\Models\Project::class,
+                    'entity_id' => $project->id,
+                    'meta' => ['errors' => count($errors)],
+                    'ip' => request()->ip(),
+                ]);
+            }
+        } catch (\Throwable $e) {
+            \Log::error('Unhandled exception while logging project.update activity', [
+                'location'   => __METHOD__,
+                'class'      => static::class,
+                'project_id' => $project->id ?? null,
+                'message'    => $e->getMessage(),
+                'trace'      => $e->getTraceAsString(),
+            ]);
+
+            report($e);
+        }
+
+        if (!empty($errors)) {
+            $redir = redirect()->route('projects.edit', $project->id)->withErrors($errors)->with('warning', 'Project updated with some notices.');
+            if (!empty($success)) { $redir->with('success', implode("\n", $success)); }
+            return $redir;
+        }
+
+        if (!empty($success)) {
+            return redirect()->route('projects.edit', $project->id)->with('success', implode("\n", $success));
+        }
+
+        return redirect()->route('projects.edit', $project->id)->with('success', 'Project updated successfully.');
+    }
+
+    public function destroy(Project $project)
+    {
+        $project->delete();
+        return redirect()->route('projects.index')->with('success', 'Project deleted.');
+    }
+
+   public function saveStructure(Request $request, Project $project)
+{
+    $validated = $request->validate([
+        'floors' => 'required|array',
+        'floors.*.name' => 'required|string',
+        'floors.*.units' => 'required|array',
+        'floors.*.units.*.name' => 'required|string',
+    ]);
+
+    foreach ($validated['floors'] as $floorData) {
+        $floor = $project->floors()->create(['name' => $floorData['name']]);
+
+        foreach ($floorData['units'] as $unitData) {
+            $unitCode = ($unitData['name'] === 'AUTO')
+                ? $this->generateUniqueUnitCode($project->code, $floor->name)
+                : $unitData['name'];
+
+            $floor->units()->create([
+                'unit_code' => $unitCode,
+                'status'    => 'available',
+            ]);
+        }
+    }
+
+    return redirect()->route('projects.show', $project->id)
+                     ->with('success', 'Structure saved successfully.');
+}
+
+    private function generateUniqueUnitCode($projectCode, $floorName)
+    {
+        $index = 1;
+
+        do {
+            $code = strtoupper($projectCode) . '-' . strtoupper($floorName) . '-' . str_pad($index, 2, '0', STR_PAD_LEFT);
+            $exists = Unit::where('unit_code', $code)->exists();
+            $index++;
+        } while ($exists);
+
+        return $code;
+    }
+
+
+    public function statement(Project $project)
+    {
+        // Eager-load both installments and payments to avoid N+1 and compute totals accurately
+        $units = $project->units()->with(['floor', 'booking.installments', 'booking.payments'])->get();
+
+        return view('reports.statement', compact('project', 'units'));
+    }
+}
