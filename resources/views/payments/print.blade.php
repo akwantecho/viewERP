@@ -116,7 +116,6 @@
       {{-- Single payment row only --}}
       @php
         $date       = optional($payment->paid_at)->format('Y-m-d') ?: '-';
-        $bankMethod = trim(($payment->bank_name ?? '').' / '.($payment->payment_method ?? ''), ' /');
         $ref        = $payment->reference_no ?? '—';
         $amount     = (float) $payment->amount;
         $vat        = $amount > 0 ? round($amount * 0.05, 2) : 0.00;
@@ -129,7 +128,6 @@
           <tr>
             <th>Installment</th>
             <th>Date</th>
-            <th>Bank / Method</th>
             <th>Invoice No</th>
             <th>Reference Code</th>
             <th>Amount (incl. VAT)</th>
@@ -142,7 +140,6 @@
           <tr>
             <td>{{ $label }}</td>
             <td>{{ $date }}</td>
-            <td>{{ $bankMethod !== '' ? $bankMethod : '-' }}</td>
             <td>{{ $invoiceNo }}</td>
             <td>{{ $ref }}</td>
             <td>{{ number_format($amount, 2) }}</td>

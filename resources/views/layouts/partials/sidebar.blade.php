@@ -136,14 +136,14 @@
                     </span>
                     <span class="sidebar-label font-semibold">{{ Str::limit(Auth::user()->name, 24) }}</span>
                 </div>
-                <a href="{{ route('profile.index', app()->getLocale()) }}"
+                <a href="{{ route('profile.index') }}"
                    class="sidebar-link flex items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
                     <span class="icon-slot text-emerald-600 {{ $isRtl ? 'ms-2' : 'me-2' }}">
                         {!! \App\Support\IconRegistry::svg('settings', 'w-5 h-5') !!}
                     </span>
                     <span class="sidebar-label">{{ __('navigation.user_menu.profile') }}</span>
                 </a>
-                <form method="POST" action="{{ route('logout', app()->getLocale()) }}">
+                <form method="POST" action="{{ route('logout') }}">
                     @csrf
                     <button type="submit"
                             class="sidebar-link flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-sm font-semibold text-red-600 border border-red-200 hover:bg-red-50">

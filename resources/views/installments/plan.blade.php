@@ -23,14 +23,8 @@
     </div>
 
     @if (session('success'))
-        <div class="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-green-800 flex flex-wrap items-center justify-between gap-3">
+        <div class="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-green-800">
             <span>{{ session('success') }}</span>
-            @if (session('plan_cta'))
-                <a href="#plan-builder"
-                   class="rounded-full bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-green-700">
-                    {{ __('installments.plan.cta') }}
-                </a>
-            @endif
         </div>
     @endif
 

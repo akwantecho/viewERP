@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 
 class Booking extends Model
@@ -70,13 +71,17 @@ class Booking extends Model
     {
         if (!$this->contract_file) return null;
 
+        if (Str::startsWith($this->contract_file, ['http://', 'https://'])) {
+            return $this->contract_file;
+        }
+
         // لو عقودك مرفوعة على s3
-        if (config('filesystems.default') === 's3') {
+        if (config('filesystems.disks.s3')) {
             return Storage::disk('s3')->url($this->contract_file);
         }
 
         // التخزين المحلي (public)
-        return asset('storage/' . ltrim($this->contract_file, '/'));
+        return Storage::disk('public')->url($this->contract_file);
     }
 
     // 🔍 حجوزات مؤكدة

@@ -72,7 +72,7 @@ class DirectSaleController extends Controller
             'customer_id'         => ['required', 'exists:customers,id'],
             'payment_method'      => ['required', 'string', 'max:100'],
             'bank_name'           => ['nullable', 'string', 'max:100'],
-            'reference_no'        => ['nullable', 'string', 'max:100', Rule::requiredIf(in_array($request->input('payment_method'), ['transfer', 'cheque']))],
+            'reference_no'        => ['required', 'string', 'max:100'],
             'receipt'             => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:2048'],
             'sale_date'           => ['required', 'date'],
         ]);

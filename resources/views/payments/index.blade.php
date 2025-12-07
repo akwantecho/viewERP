@@ -24,7 +24,6 @@
         <div class="flex flex-wrap gap-2">
             <a href="{{ route('installments.index', $booking->id) }}" class="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:bg-slate-100">{{ __('payments.index.buttons.installments') }}</a>
             <a href="{{ route('bookings.installments.plan', $booking->id) }}" class="inline-flex items-center gap-2 rounded-lg border border-blue-200 px-3 py-2 text-sm text-blue-600 hover:bg-blue-50">{{ __('payments.index.buttons.plan') }}</a>
-            <a href="{{ route('payments.create', $booking->id) }}" class="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-700">{{ __('payments.index.buttons.new') }}</a>
             <a href="{{ route('payments.printAll', ['booking' => $booking->id]) }}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:bg-slate-100">{{ __('payments.index.buttons.print_all') }}</a>
             @can('bookings.delete')
                 <form action="{{ route('bookings.destroy', $booking->id) }}" method="POST" data-confirm="delete" data-confirm-title="{{ __('payments.index.confirm_booking.title') }}" data-confirm-message="{{ __('payments.index.confirm_booking.message') }}">

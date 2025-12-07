@@ -2,14 +2,17 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\Storage;
 use App\Services\HtmlSanitizer;
 use Google\Client as GoogleClient;
 use Google\Service\Drive as GoogleDrive;
-use Masbug\Flysystem\GoogleDriveAdapter;
-use League\Flysystem\Filesystem;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Filesystem\FilesystemAdapter;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\ServiceProvider;
+use League\Flysystem\Filesystem;
+use Masbug\Flysystem\GoogleDriveAdapter;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -31,6 +34,18 @@ class AppServiceProvider extends ServiceProvider
             $driver  = new Filesystem($adapter);
 
             return new FilesystemAdapter($driver, $adapter);
+        });
+
+        RateLimiter::for('login', function (Request $request) {
+            $email = (string) $request->input('email');
+
+            return Limit::perMinute(5)->by(strtolower($email) . '|' . $request->ip());
+        });
+
+        RateLimiter::for('sync', function (Request $request) {
+            $key = optional($request->user())->getKey() ?? $request->ip();
+
+            return Limit::perMinute(10)->by('sync|' . $key);
         });
 
     }

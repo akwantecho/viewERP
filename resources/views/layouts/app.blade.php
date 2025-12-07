@@ -57,7 +57,7 @@
                         </button>
                     @endauth
 
-                    <a href="{{ route('home', ['locale' => app()->getLocale()]) }}" class="flex items-center gap-2" aria-label="{{ __('navigation.aria.go_to_dashboard') }}">
+                    <a href="{{ route('home') }}" class="flex items-center gap-2" aria-label="{{ __('navigation.aria.go_to_dashboard') }}">
                        
                     </a>
                 </div>
@@ -71,14 +71,15 @@
                 @endphp
 
                 <div class="flex items-center gap-3">
-                    <div class="hidden sm:flex items-center gap-1 text-xs font-semibold text-slate-600">
-                        <a href="{{ localized_url('ar') }}" class="px-2 py-1 rounded-full {{ app()->isLocale('ar') ? 'bg-slate-900 text-white' : 'hover:text-slate-900' }}">{{ __('navigation.language.arabic') }}</a>
+                    <form method="POST" action="{{ route('language.switch') }}" class="hidden sm:inline-flex items-center gap-1 text-xs font-semibold text-slate-600">
+                        @csrf
+                        <button type="submit" name="locale" value="ar" class="px-2 py-1 rounded-full {{ app()->isLocale('ar') ? 'bg-slate-900 text-white' : 'hover:text-slate-900' }}">{{ __('navigation.language.arabic') }}</button>
                         <span class="text-slate-300">|</span>
-                        <a href="{{ localized_url('en') }}" class="px-2 py-1 rounded-full {{ app()->isLocale('en') ? 'bg-slate-900 text-white' : 'hover:text-slate-900' }}">{{ __('navigation.language.english') }}</a>
-                    </div>
+                        <button type="submit" name="locale" value="en" class="px-2 py-1 rounded-full {{ app()->isLocale('en') ? 'bg-slate-900 text-white' : 'hover:text-slate-900' }}">{{ __('navigation.language.english') }}</button>
+                    </form>
 
                     @auth
-                        <a href="{{ route('installments.notifications', ['locale' => app()->getLocale(), 'today_only' => 1]) }}"
+                        <a href="{{ route('installments.notifications', ['today_only' => 1]) }}"
                            class="relative inline-flex items-center justify-center w-10 h-10 rounded-full border border-gray-200 hover:bg-gray-100"
                            title="{{ __('navigation.aria.notifications') }}">
                             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -99,7 +100,7 @@
                             </span>
                         </div>
                     @else
-                        <a href="{{ route('login', ['locale' => app()->getLocale()]) }}" class="text-sm text-gray-700 hover:text-black">{{ __('navigation.user_menu.login') }}</a>
+                        <a href="{{ route('login') }}" class="text-sm text-gray-700 hover:text-black">{{ __('navigation.user_menu.login') }}</a>
                     @endauth
                 </div>
             </div>
@@ -110,7 +111,7 @@
         </main>
 
         <footer class="bg-gray-900 text-yellow-400 py-4 text-center text-sm mt-8">
-            © {{ date('Y') }} Viwe ERP. {{ __('navigation.footer.rights') }}
+            © {{ date('Y') }} Viwe . {{ __('navigation.footer.rights') }}
         </footer>
     </div>
 

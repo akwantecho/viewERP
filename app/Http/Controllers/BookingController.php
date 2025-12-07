@@ -92,6 +92,7 @@ class BookingController extends Controller
      */
     public function store(Request $request, Unit $unit)
     {
+        $unit->loadMissing('floor.project');
         $request->merge([
             'reference_no' => $this->normalizeReferenceInput($request),
         ]);
@@ -106,8 +107,9 @@ class BookingController extends Controller
                 'string','max:100'
             ],
             'bank_name'          => ['nullable','string','max:100'],
-            'reference_no'       => [Rule::requiredIf(in_array($request->input('payment_method'), ['transfer','cheque'])), 'nullable','string','max:100'],
+            'reference_no'       => ['required','string','max:100'],
             'receipt'            => ['nullable','file','mimes:jpg,jpeg,png,pdf','max:2048'],
+            'contract_file'      => ['required','file','mimes:pdf,jpg,jpeg,png','max:20480'],
         ];
 
         // التحقق
@@ -156,17 +158,85 @@ class BookingController extends Controller
         $bankName      = $validated['bank_name'] ?? null;
         $referenceNo   = $validated['reference_no'] ?? null;
 
+        // Prepare safe codes once
+        $projectCode = strtoupper((string) optional($unit->floor->project)->code);
+        $unitCode    = strtoupper((string) $unit->unit_code);
+        $safeProject = preg_replace('/[^A-Za-z0-9\\-_.]+/', '-', $projectCode ?: 'PROJECT');
+        $safeUnit    = preg_replace('/[^A-Za-z0-9\\-_.]+/', '-', $unitCode ?: ('UNIT-'.$unit->id));
+        $diskDefault = config('filesystems.disks.s3') ? 's3' : 'public';
+
+        // 1. Upload contract (required)
+        $contractPath = null;
+        $contractUrl  = null;
+        if ($request->hasFile('contract_file')) {
+            try {
+                $contractDir = "bookings/{$safeProject}/{$safeUnit}/contracts";
+                $contractExt = strtolower($request->file('contract_file')->getClientOriginalExtension() ?: 'pdf');
+                $contractBase = 'CONTRACT-'.$safeUnit;
+                $candidate = $contractBase.'.'.$contractExt;
+                $c = 1;
+                try {
+                    while (Storage::disk($diskDefault)->exists("$contractDir/$candidate") && $c < 50) {
+                        $candidate = $contractBase.'-'.$c.'.'.$contractExt;
+                        $c++;
+                    }
+                } catch (\Throwable $e) {
+                    \Log::error('Unhandled exception while checking booking contract collision', [
+                        'location' => __METHOD__,
+                        'class'    => static::class,
+                        'unit_id'  => $unit->id ?? null,
+                        'dir'      => $contractDir,
+                        'message'  => $e->getMessage(),
+                        'trace'    => $e->getTraceAsString(),
+                    ]);
+
+                    report($e);
+                }
+
+                $storedContract = $request->file('contract_file')->storePubliclyAs($contractDir, $candidate, $diskDefault);
+                $contractPath = $storedContract;
+                try {
+                    $contractUrl = Storage::disk($diskDefault)->url($storedContract);
+                } catch (\Throwable $e) {
+                    \Log::error('Unhandled exception while generating booking contract URL', [
+                        'location'  => __METHOD__,
+                        'class'     => static::class,
+                        'unit_id'   => $unit->id ?? null,
+                        'path'      => $storedContract,
+                        'message'   => $e->getMessage(),
+                        'trace'     => $e->getTraceAsString(),
+                    ]);
+
+                    report($e);
+                    $contractUrl = null;
+                }
+            } catch (\Throwable $e) {
+                \Log::error('Unhandled exception while processing booking contract upload', [
+                    'location' => __METHOD__,
+                    'class'    => static::class,
+                    'unit_id'  => $unit->id ?? null,
+                    'message'  => $e->getMessage(),
+                    'trace'    => $e->getTraceAsString(),
+                ]);
+
+                report($e);
+                $contractPath = null;
+                $contractUrl  = null;
+            }
+        }
+
+        if (!$contractPath) {
+            return back()
+                ->withErrors(['contract_file' => 'فشل رفع العقد، يرجى المحاولة مرة أخرى.'])
+                ->withInput();
+        }
+
         // 2) رفع إيصال العربون إلى S3 إن توفّر، وإلا public
         $receiptUrl = null; // full URL for viewing
         $receiptPath = null; // relative path saved into payments
         if ($request->hasFile('receipt')) {
             try {
-                $disk = config('filesystems.disks.s3') ? 's3' : 'public';
                 // Organized storage: bookings/{PROJECT_CODE}/{UNIT_CODE}/payments
-                $projectCode = strtoupper((string) optional($unit->floor->project)->code);
-                $unitCode    = strtoupper((string) $unit->unit_code);
-                $safeProject = preg_replace('/[^A-Za-z0-9\-_.]+/', '-', $projectCode ?: 'PROJECT');
-                $safeUnit    = preg_replace('/[^A-Za-z0-9\-_.]+/', '-', $unitCode ?: ('UNIT-'.$unit->id));
                 $dir  = "bookings/{$safeProject}/{$safeUnit}/payments";
                 $ext  = strtolower($request->file('receipt')->getClientOriginalExtension() ?: 'pdf');
                 $base = $referenceNo ? preg_replace('/[^A-Za-z0-9\-_.]+/', '-', (string) $referenceNo) : ('ADV-'.$unit->id);
@@ -174,7 +244,7 @@ class BookingController extends Controller
                 $candidate = $base . '.' . $ext;
                 $i = 1; $nameToUse = $candidate;
                 try {
-                    while (Storage::disk($disk)->exists("$dir/$nameToUse") && $i < 50) {
+                    while (Storage::disk($diskDefault)->exists("$dir/$nameToUse") && $i < 50) {
                         $nameToUse = $base.'-'.$i.'.'.$ext; $i++;
                     }
                 } catch (\Throwable $e) {
@@ -189,9 +259,9 @@ class BookingController extends Controller
 
                     report($e);
                 }
-                $storedRel = $request->file('receipt')->storePubliclyAs($dir, $nameToUse, $disk);
+                $storedRel = $request->file('receipt')->storePubliclyAs($dir, $nameToUse, $diskDefault);
                 // Optional optimize if local public
-                if ($disk === 'public') {
+                if ($diskDefault === 'public') {
                     try { ImageOptimizer::optimize(storage_path('app/public/'.$storedRel)); } catch (\Throwable $e) {
                         \Log::error('Unhandled exception while optimizing booking receipt image', [
                             'location'  => __METHOD__,
@@ -206,7 +276,7 @@ class BookingController extends Controller
                     }
                 }
                 $receiptPath = $storedRel;
-                try { $receiptUrl = Storage::disk($disk)->url($storedRel); } catch (\Throwable $e) {
+                try { $receiptUrl = Storage::disk($diskDefault)->url($storedRel); } catch (\Throwable $e) {
                     \Log::error('Unhandled exception while generating booking receipt URL', [
                         'location'  => __METHOD__,
                         'class'     => static::class,
@@ -274,7 +344,33 @@ class BookingController extends Controller
                 'monthly_due_day'    => null,
                 'plan_type'          => null,
                 'status'             => 'confirmed',
+                'contract_file'      => $contractPath,
             ]);
+
+            // Attach contract as document entry for project/unit pages & customer profile
+            if (Schema::hasTable('documents')) {
+                try {
+                    Document::create([
+                        'name'              => 'Booking Contract',
+                        'type'              => 'contract',
+                        'path'              => $contractUrl ?? $contractPath,
+                        'documentable_type' => Booking::class,
+                        'documentable_id'   => $booking->id,
+                    ]);
+                } catch (\Throwable $e) {
+                    \Log::error('Unhandled exception while creating booking contract document', [
+                        'location'   => __METHOD__,
+                        'class'      => static::class,
+                        'booking_id' => $booking->id ?? null,
+                        'unit_id'    => $unit->id ?? null,
+                        'path'       => $contractPath,
+                        'message'    => $e->getMessage(),
+                        'trace'      => $e->getTraceAsString(),
+                    ]);
+
+                    report($e);
+                }
+            }
 
             // تسجيل العربون كدفعة عامة (غير مرتبطة بقسط)
             if ($advance > 0) {

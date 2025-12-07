@@ -36,6 +36,16 @@
         '' => 'Document',
     ];
 
+    $resolveDocUrl = static function ($path) {
+        if (empty($path)) {
+            return null;
+        }
+
+        return Str::startsWith($path, ['http://','https://'])
+            ? $path
+            : Storage::url($path);
+    };
+
     $documentEntries = collect();
     foreach ($bookings as $bookingDoc) {
         $unit = $bookingDoc->unit;
@@ -44,7 +54,7 @@
                 $documentEntries->push([
                     'name' => $doc->name,
                     'label' => $typeLabels[$doc->type] ?? Str::headline((string) ($doc->type ?? 'Document')),
-                    'url' => $doc->path,
+                    'url' => $resolveDocUrl($doc->path),
                     'related' => $unit->unit_code ? 'Unit '.$unit->unit_code : 'Unit #'.$unit->id,
                     'context' => 'Unit document',
                     'date' => optional($doc->created_at)->format('Y-m-d'),
@@ -52,17 +62,33 @@
             }
         }
 
+        $hasContractDoc = false;
         if ($bookingDoc->documents) {
             foreach ($bookingDoc->documents as $doc) {
+                if ($doc->type === 'contract') {
+                    $hasContractDoc = true;
+                }
+
                 $documentEntries->push([
                     'name' => $doc->name,
                     'label' => $typeLabels[$doc->type] ?? Str::headline((string) ($doc->type ?? 'Document')),
-                    'url' => $doc->path,
+                    'url' => $resolveDocUrl($doc->path),
                     'related' => 'Booking #'.$bookingDoc->id,
                     'context' => 'Booking document',
                     'date' => optional($doc->created_at)->format('Y-m-d'),
                 ]);
             }
+        }
+
+        if (!$hasContractDoc && $bookingDoc->contract_url) {
+            $documentEntries->push([
+                'name' => 'Booking Contract',
+                'label' => $typeLabels['contract'],
+                'url' => $bookingDoc->contract_url,
+                'related' => 'Booking #'.$bookingDoc->id,
+                'context' => 'Booking contract',
+                'date' => optional($bookingDoc->created_at)->format('Y-m-d'),
+            ]);
         }
     }
 

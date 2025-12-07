@@ -7,7 +7,7 @@ use App\Models\Booking;
 use App\Models\Installment;
 use App\Models\Payment;
 use Illuminate\Support\Facades\Storage;
-use Spatie\LaravelPdf\Facades\Pdf;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Validation\Rule;
 use App\Http\Controllers\Concerns\NormalizesReferenceInput;
 use App\Services\PaymentReceiptService;
@@ -45,7 +45,7 @@ class PaymentController extends Controller
     /**
      * Show the payment creation form (general or installment payment).
      */
-    public function create(Booking $booking, Installment $installment = null)
+    public function create(Booking $booking, ?Installment $installment = null)
     {
         $this->ensureInstallmentBelongsToBooking($booking, $installment);
 
@@ -55,8 +55,14 @@ class PaymentController extends Controller
     /**
      * Store a new payment. Each partial installment payment gets its own record.
      */
-    public function store(Request $request, Booking $booking, Installment $installment = null)
+    public function store(Request $request, Booking $booking, ?Installment $installment = null)
     {
+        \Log::info('STORE PAYMENT HIT', [
+            'booking_id' => $booking->id ?? null,
+            'installment_id' => $installment->id ?? null,
+            'installment_booking_id' => $installment->booking_id ?? null,
+        ]);
+
         $this->ensureInstallmentBelongsToBooking($booking, $installment);
 
         $request->merge([
@@ -275,15 +281,15 @@ class PaymentController extends Controller
             }
         }
 
-        return Pdf::view('payments.print', [
+        $pdf = Pdf::loadView('payments.print', [
             'booking' => $booking,
             'payment' => $payment,
             'receiptDataUri' => $receiptDataUri,
             'previousRemaining' => $previousRemaining,
             'remainingAfter'    => $remainingAfter,
-        ])->format('a4')
-            ->portrait()
-            ->inline('Payment_Receipt_' . $payment->id . '.pdf');
+        ])->setPaper('a4', 'portrait');
+
+        return $pdf->stream('Payment_Receipt_' . $payment->id . '.pdf');
     }
 
     /**
@@ -317,14 +323,14 @@ class PaymentController extends Controller
             ];
         });
 
-        return Pdf::view('payments.print_all', [
+        $pdf = Pdf::loadView('payments.print_all', [
             'booking'  => $booking,
             'payments' => $paymentsWithRunning,
             'generated_at' => now()->format('Y-m-d H:i'),
             'total_price' => $totalPrice,
-        ])->format('a4')
-            ->portrait()
-            ->inline('All_Payments_Booking_' . $booking->id . '.pdf');
+        ])->setPaper('a4', 'portrait');
+
+        return $pdf->stream('All_Payments_Booking_' . $booking->id . '.pdf');
     }
 
     /**
@@ -472,7 +478,11 @@ class PaymentController extends Controller
 
     private function ensureInstallmentBelongsToBooking(Booking $booking, ?Installment $installment = null): void
     {
-        if ($installment && $installment->booking_id !== $booking->id) {
+        if (! $installment) {
+            return;
+        }
+
+        if ((int) $installment->booking_id !== (int) $booking->id) {
             abort(404);
         }
     }

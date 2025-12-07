@@ -202,20 +202,37 @@
                         </select>
                     </div>
 
-                    <div x-show="requiresReference" x-transition x-cloak>
+                    <div>
                         <label class="block text-sm font-semibold mb-1">Reference Number</label>
                         <input name="reference_no" type="text" maxlength="100"
                                x-model.trim="reference"
-                               :required="requiresReference"
+                               required
                                value="{{ old('reference_no') }}"
                                class="w-full border rounded-xl px-3 py-2" placeholder="Enter reference code">
-                        <p class="mt-1 text-xs text-gray-500">Required for bank transfers or cheques.</p>
+                        <p class="mt-1 text-xs text-gray-500">Reference is required for all payment methods.</p>
                     </div>
 
                     <div>
                         <label class="block text-sm font-semibold mb-1">Upload Receipt (S3)</label>
                         <input name="receipt" type="file" accept="image/*,application/pdf"
                                class="w-full border rounded-xl px-3 py-2 file:me-3 file:py-2 file:px-3 file:border-0 file:rounded-lg file:bg-[#f5ce00] file:text-[#1f2937] file:cursor-pointer">
+                    </div>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-4 mt-4">
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-semibold mb-1">Booking Contract (required)</label>
+                        <input
+                            name="contract_file"
+                            type="file"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            required
+                            class="w-full border rounded-xl px-3 py-2 file:me-3 file:py-2 file:px-3 file:border-0 file:rounded-lg file:bg-[#6b7280] file:text-white file:cursor-pointer"
+                        >
+                        <p class="text-xs text-gray-500 mt-1">Upload a signed booking contract (PDF/JPG/PNG). Stored securely on S3.</p>
+                        @error('contract_file')
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
                     </div>
                 </div>
 
@@ -313,10 +330,6 @@ function bookingForm({ vatRate, unitPrice, advance, customers, presetCustomerId,
         get remaining() {
             return round2(Math.max(this.unitPrice - this.advance, 0));
         },
-        get requiresReference() {
-            return ['transfer', 'cheque'].includes(this.paymentMethod);
-        },
-
         normalizeDigits(value) {
             return String(value ?? '')
                 .replace(ARABIC_DIGIT_REGEX, (char) => ARABIC_DIGIT_MAP[char] ?? '')
@@ -391,14 +404,9 @@ function bookingForm({ vatRate, unitPrice, advance, customers, presetCustomerId,
             this.paymentMethod = paymentMethodDefault || '';
             this.reference = referenceDefault || '';
 
-            this.$watch('paymentMethod', (method) => {
-                if (!['transfer', 'cheque'].includes(method)) {
-                    this.reference = '';
-                }
-            });
+            // Keep reference field available for all methods; required only for transfer/cheque
         },
     };
 }
 </script>
 @endsection
-

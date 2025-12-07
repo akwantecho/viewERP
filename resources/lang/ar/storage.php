@@ -1,0 +1,32 @@
+<?php
+
+return [
+    'section' => 'التخزين',
+    'title' => 'مدير S3',
+    'current_path_label' => 'المسار الحالي:',
+    'go_up' => '⬆️ الرجوع مستوى واحد',
+    'root' => 'الجذر',
+    'disk_not_ready' => 'قرص S3 غير مهيأ. حدّث بيانات الاعتماد في ملف <code>.env</code> أولاً.',
+    'upload_replace' => 'رفع / استبدال',
+    'target_folder' => 'المجلد المستهدف',
+    'choose_file' => 'اختر ملفاً',
+    'custom_name' => 'اسم مخصص (اختياري)',
+    'replace_checkbox' => 'استبدال الملف الحالي إذا توافق الاسم',
+    'upload_button' => '⬆️ رفع الملف',
+    'breadcrumb' => 'مسار التنقل',
+    'folders' => 'المجلدات',
+    'folders_found' => 'تم العثور على :count',
+    'no_directories' => 'لا يوجد مجلدات فرعية هنا.',
+    'files' => 'الملفات',
+    'files_count' => '{0}لا ملفات|[1]ملف واحد|[2,*]:count ملفات',
+    'table' => [
+        'name' => 'الاسم',
+        'size' => 'الحجم',
+        'last_modified' => 'آخر تحديث',
+        'actions' => 'الإجراءات',
+    ],
+    'open' => 'فتح',
+    'delete' => 'حذف',
+    'confirm_delete' => 'حذف :name؟',
+    'no_files' => 'لا توجد ملفات في هذا المجلد.',
+];

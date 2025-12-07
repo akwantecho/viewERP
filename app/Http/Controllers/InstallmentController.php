@@ -189,19 +189,30 @@ class InstallmentController extends Controller
         return redirect()->route('units.show', $booking->unit_id)
             ->with('success', 'Installment plan created successfully');
     }
-
-
-    // عرض صفحة دفع القسط
-    public function show($id)
+    // Standalone payment page
+    public function pay(Installment $installment)
     {
-        $installment = Installment::with('booking.unit')->findOrFail($id);
+        $installment->load('booking.unit');
+        $unit = $installment->booking->unit;
+
+        return view('installments.pay', compact('installment', 'unit'));
+    }
+
+    // Payment page inside a specific booking
+    public function payForBooking(Booking $booking, Installment $installment)
+    {
+        if ((int) $installment->booking_id !== (int) $booking->id) {
+            abort(404);
+        }
+
+        $installment->load('booking.unit');
         $unit = $installment->booking->unit;
 
         return view('installments.pay', compact('installment', 'unit'));
     }
 
     // تنفيذ الدفع
-    
+
 
     // طباعة قسط منفرد
     public function printInstallment(Installment $installment)

@@ -202,14 +202,14 @@
                 </div>
 
                 <div class="grid md:grid-cols-2 gap-4">
-                    <div x-show="requiresReference" x-transition x-cloak>
+                    <div>
                         <label class="block text-sm font-semibold mb-1">Reference Number</label>
                         <input name="reference_no" type="text" maxlength="100"
                                x-model.trim="reference"
-                               :required="requiresReference"
+                               required
                                value="{{ old('reference_no') }}"
                                class="w-full border rounded-xl px-3 py-2" placeholder="Enter reference code">
-                        <p class="mt-1 text-xs text-gray-500">Required for bank transfers or cheques.</p>
+                        <p class="mt-1 text-xs text-gray-500">Reference is required for all payment methods.</p>
                     </div>
                     <div>
                         <label class="block text-sm font-semibold mb-1">Upload Receipt</label>
@@ -347,11 +347,7 @@ function directSaleForm({ vatRate, unitPrice, reservationDefault, handoverDateDe
             this.paymentMethod = paymentMethodDefault || '';
             this.reference = referenceDefault || '';
             this.$watch('unitPrice', () => this.clampReservation());
-            this.$watch('paymentMethod', (method) => {
-                if (!['transfer', 'cheque'].includes(method)) {
-                    this.reference = '';
-                }
-            });
+            // Reference stays available for all methods
         }
     };
 }

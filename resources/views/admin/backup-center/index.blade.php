@@ -57,7 +57,7 @@
                     <h2 class="text-lg font-semibold text-slate-800">نسخ التصريحات إلى S3</h2>
                     <p class="text-xs text-slate-500">توليد ملفات PDF لكل مشروع وتحميلها مباشرةً إلى S3.</p>
                 </div>
-                <form method="POST" action="{{ route('admin.backup-center.statements.backup', app()->getLocale()) }}">
+                <form method="POST" action="{{ route('admin.backup-center.statements.backup') }}">
                     @csrf
                     <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 text-white px-4 py-2 text-sm font-semibold hover:bg-emerald-500">
                         {!! \App\Support\IconRegistry::svg('cloud-upload', 'w-4 h-4 text-white') !!}
@@ -130,7 +130,7 @@
             <h2 class="text-lg font-semibold text-slate-800">إعدادات نسخ التصريحات</h2>
             <p class="text-xs text-slate-500">اضبط النسخ التلقائي لتقارير المشاريع إلى S3</p>
         </div>
-        <form method="POST" action="{{ route('admin.backup-center.settings.update', app()->getLocale()) }}" class="p-6 space-y-4">
+        <form method="POST" action="{{ route('admin.backup-center.settings.update') }}" class="p-6 space-y-4">
             @csrf
             @method('PUT')
             <div class="grid md:grid-cols-2 gap-4">
@@ -183,8 +183,8 @@
                 <p class="text-xs text-slate-500">متابعة نسخ التصريحات (يدوي/مجدول)</p>
             </div>
             <div class="flex gap-2 text-xs font-semibold">
-                <a href="{{ route('admin.backup-center.logs.backups', app()->getLocale()) }}" class="px-3 py-1.5 rounded-full {{ $activeTab === 'backup_logs' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600' }}">سجلات النسخ</a>
-                <a href="{{ route('admin.backup-center.logs.sync', app()->getLocale()) }}" class="px-3 py-1.5 rounded-full {{ $activeTab === 'sync_logs' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600' }}">سجلات المزامنة</a>
+                <a href="{{ route('admin.backup-center.logs.backups') }}" class="px-3 py-1.5 rounded-full {{ $activeTab === 'backup_logs' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600' }}">سجلات النسخ</a>
+                <a href="{{ route('admin.backup-center.logs.sync') }}" class="px-3 py-1.5 rounded-full {{ $activeTab === 'sync_logs' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600' }}">سجلات المزامنة</a>
             </div>
         </div>
         <div class="p-6">
@@ -273,12 +273,12 @@
                                             @if($log->cloud_url)
                                                 <a href="{{ $log->cloud_url }}" target="_blank" class="px-2 py-1 text-xs font-semibold rounded bg-emerald-50 text-emerald-700 hover:bg-emerald-100">رابط السحابة</a>
                                             @endif
-                                            <form method="GET" action="{{ route('admin.backup-center.download', app()->getLocale()) }}">
+                                            <form method="GET" action="{{ route('admin.backup-center.download') }}">
                                                 <input type="hidden" name="disk" value="{{ $log->disk }}">
                                                 <input type="hidden" name="path" value="{{ $log->file_name }}">
                                                 <button type="submit" class="px-2 py-1 text-xs font-semibold rounded bg-slate-100 text-slate-600 hover:bg-slate-200">تحميل</button>
                                             </form>
-                                            <form method="POST" action="{{ route('admin.backup-center.delete', app()->getLocale()) }}" onsubmit="return confirm('هل تريد حذف ملف النسخة الاحتياطية؟');">
+                                            <form method="POST" action="{{ route('admin.backup-center.delete') }}" onsubmit="return confirm('هل تريد حذف ملف النسخة الاحتياطية؟');">
                                                 @csrf
                                                 @method('DELETE')
                                                 <input type="hidden" name="disk" value="{{ $log->disk }}">

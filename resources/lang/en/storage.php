@@ -1,0 +1,32 @@
+<?php
+
+return [
+    'section' => 'Storage',
+    'title' => 'S3 Manager',
+    'current_path_label' => 'Current path:',
+    'go_up' => '⬆️ Go up one level',
+    'root' => 'Root',
+    'disk_not_ready' => 'S3 disk is not configured. Update the credentials in the <code>.env</code> file first.',
+    'upload_replace' => 'Upload / Replace',
+    'target_folder' => 'Target folder',
+    'choose_file' => 'Choose a file',
+    'custom_name' => 'Custom name (optional)',
+    'replace_checkbox' => 'Replace existing file if the name matches',
+    'upload_button' => '⬆️ Upload file',
+    'breadcrumb' => 'Breadcrumb',
+    'folders' => 'Folders',
+    'folders_found' => ':count found',
+    'no_directories' => 'No sub-folders here.',
+    'files' => 'Files',
+    'files_count' => '{0}No files|[1]1 file|[2,*]:count files',
+    'table' => [
+        'name' => 'Name',
+        'size' => 'Size',
+        'last_modified' => 'Last updated',
+        'actions' => 'Actions',
+    ],
+    'open' => 'Open',
+    'delete' => 'Delete',
+    'confirm_delete' => 'Delete :name?',
+    'no_files' => 'No files in this folder.',
+];

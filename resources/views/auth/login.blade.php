@@ -52,16 +52,14 @@
 
                 <div class="flex justify-center">
                     <span class="sr-only">{{ __('auth.language.label') }}</span>
-                    <div class="inline-flex rounded-full border border-gray-200 bg-gray-50 p-1 text-xs font-medium">
+                    <form method="POST" action="{{ route('language.switch') }}" class="inline-flex rounded-full border border-gray-200 bg-gray-50 p-1 text-xs font-medium">
+                        @csrf
                         @foreach ($availableLocales as $locale => $label)
-                            <a
-                                href="{{ route('login', ['locale' => $locale]) }}"
-                                class="px-3 py-1 rounded-full transition {{ $currentLocale === $locale ? 'bg-primary text-white' : 'text-gray-600 hover:text-primary' }}"
-                            >
+                            <button type="submit" name="locale" value="{{ $locale }}" class="px-3 py-1 rounded-full transition {{ $currentLocale === $locale ? 'bg-primary text-white' : 'text-gray-600 hover:text-primary' }}">
                                 {{ $label }}
-                            </a>
+                            </button>
                         @endforeach
-                    </div>
+                    </form>
                 </div>
 
                 <h2 class="text-3xl font-bold text-primary text-center mb-6">{{ __('auth.login.title') }}</h2>
@@ -73,7 +71,7 @@
                     </div>
                 @endif
 
-                <form method="POST" action="{{ route('login.submit', ['locale' => app()->getLocale()]) }}" class="space-y-5">
+                <form method="POST" action="{{ route('login.submit') }}" class="space-y-5">
                     @csrf
 
                     <div>
