@@ -31,6 +31,8 @@ return [
         'recently' => 'recently',
     ],
 
+    'currency' => 'OMR',
+
     'entities' => [
         'project' => 'Project',
         'projects' => 'Projects',

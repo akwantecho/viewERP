@@ -18,10 +18,28 @@
         h1, h2, h3 { margin: 0; }
         /* Move the title 10px further down */
         h2 { text-align: center; margin: 70px 0 18px; }
-        table { width: 100%; border-collapse: collapse; font-size: 12px; }
-        th, td { border: 1px solid #999; padding: 6px; text-align: center; }
+        table { width: 100%; border-collapse: collapse; font-size: 9px; table-layout: fixed; }
+        th, td {
+            border: 1px solid #999;
+            padding: 4px 2px;
+            text-align: center;
+            word-wrap: break-word;
+            word-break: break-all;
+            overflow-wrap: break-word;
+            line-height: 1.3;
+        }
+        th { font-size: 8px; font-weight: bold; }
         /* Only keep the date column on one line and widen it */
-        .payments-table th:nth-child(2), .payments-table td:nth-child(2) { white-space: nowrap; width: 16%; }
+        .payments-table th:nth-child(2), .payments-table td:nth-child(2) { white-space: nowrap; width: 9%; }
+        /* Set specific widths for problematic columns */
+        .payments-table th:nth-child(1), .payments-table td:nth-child(1) { width: 8%; } /* Installment No */
+        .payments-table th:nth-child(3), .payments-table td:nth-child(3) { width: 13%; } /* Bank/Method */
+        .payments-table th:nth-child(4), .payments-table td:nth-child(4) { width: 9%; } /* Invoice No */
+        .payments-table th:nth-child(5), .payments-table td:nth-child(5) { width: 11%; } /* Reference Code */
+        .payments-table th:nth-child(6), .payments-table td:nth-child(6) { width: 11%; } /* Amount */
+        .payments-table th:nth-child(7), .payments-table td:nth-child(7) { width: 8%; } /* VAT */
+        .payments-table th:nth-child(8), .payments-table td:nth-child(8) { width: 11%; } /* Previous Remaining */
+        .payments-table th:nth-child(9), .payments-table td:nth-child(9) { width: 11%; } /* Remaining After */
         .meta td { border: 0; padding: 3px 0; }
         .small { font-size: 11px; color: #555; }
         .page-break { page-break-before: always; }

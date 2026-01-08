@@ -25,6 +25,7 @@ use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\S3FileController;
 use App\Http\Controllers\SyncController;
 use App\Http\Controllers\TotalStatementController;
+use App\Http\Controllers\InstallmentsReportController;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -62,6 +63,14 @@ Route::middleware(['web', 'set.locale'])->group(function () {
 
     Route::middleware('auth')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+        Route::get('/reports/total-statement', [TotalStatementController::class, 'index'])
+            ->middleware('permission:reports.view')
+            ->name('reports.totalStatement');
+
+        Route::get('/reports/installments', [InstallmentsReportController::class, 'index'])
+            ->middleware('permission:reports.view')
+            ->name('reports.installments');
 
         Route::resource('users', UserController::class);
 

@@ -20,7 +20,9 @@ class ProjectController extends Controller
     public function index()
 {
     $projects = Project::withCount([
-        'floors',
+        'floors' => function ($query) {
+            $query->has('units');
+        },
         'units',
         'units as reserved_units_count' => function ($query) {
             $query->whereIn('status', ['reserved', 'sold']);
@@ -73,26 +75,39 @@ class ProjectController extends Controller
                 ->withInput();
         }
 
+        // Count only floors that have units
+        $floorsWithUnits = 0;
+        foreach (($validated['floors'] ?? []) as $floorData) {
+            $units = $floorData['units'] ?? [];
+            if (!empty($units) && count($units) > 0) {
+                $floorsWithUnits++;
+            }
+        }
+
         $project = Project::create([
             'name' => $validated['name'],
             'code' => strtoupper($validated['code']),
             'notes' => $validated['notes'] ?? null,
-            'floors_count' => count($validated['floors'] ?? []),
+            'floors_count' => $floorsWithUnits,
         ]);
 
         if (!empty($validated['floors'])) {
             foreach ($validated['floors'] as $floorData) {
+                // Skip floors with no units
+                $units = $floorData['units'] ?? [];
+                if (empty($units) || count($units) === 0) {
+                    continue;
+                }
+
                 $floor = $project->floors()->create([
                     'name' => $floorData['name'],
                 ]);
 
-                if (!empty($floorData['units'])) {
-                    foreach ($floorData['units'] as $i => $unitData) {
-                        $floor->units()->create([
-                            'unit_code' => $this->generateUniqueUnitCode($project->code, $floor->name),
-                            'status' => 'available',
-                        ]);
-                    }
+                foreach ($units as $i => $unitData) {
+                    $floor->units()->create([
+                        'unit_code' => $this->generateUniqueUnitCode($project->code, $floor->name),
+                        'status' => 'available',
+                    ]);
                 }
             }
         }
@@ -103,18 +118,57 @@ class ProjectController extends Controller
 
     public function show(Project $project)
     {
-        // Count for header stats
-        $project->loadCount('floors');
+        // Count only floors that have units
+        $project->loadCount(['floors' => function ($query) {
+            $query->has('units');
+        }]);
 
         // Paginate units for this project; keep query string for per_page
         $perPage = (int) request('per_page', 20);
         if ($perPage <= 0) { $perPage = 20; }
 
-        $units = $project->units()
-            ->with('floor')
-            ->orderBy('unit_code')
-            ->paginate($perPage)
-            ->withQueryString();
+        // Get all units with floors to sort them properly
+        $allUnits = $project->units()->with('floor')->get();
+
+        // Custom sort: L -> G -> 1 -> 2 -> 3 -> etc., then by unit_code
+        $sortedUnits = $allUnits->sort(function($a, $b) {
+            $floorA = strtoupper($a->floor->name ?? '');
+            $floorB = strtoupper($b->floor->name ?? '');
+
+            // Custom priority for floors
+            $getPriority = function($floorName) {
+                if ($floorName === 'L') return ['0', 0];
+                if ($floorName === 'G') return ['1', 0];
+                if (is_numeric($floorName)) return ['2', (int)$floorName];
+                return ['3', $floorName];
+            };
+
+            [$priorityA, $valueA] = $getPriority($floorA);
+            [$priorityB, $valueB] = $getPriority($floorB);
+
+            // Compare priorities first
+            if ($priorityA !== $priorityB) {
+                return strcmp($priorityA, $priorityB);
+            }
+
+            // If same priority, compare values
+            if ($valueA !== $valueB) {
+                return $valueA <=> $valueB;
+            }
+
+            // If same floor, sort by unit_code
+            return strcmp($a->unit_code, $b->unit_code);
+        })->values();
+
+        // Manually paginate the sorted collection
+        $currentPage = \Illuminate\Pagination\Paginator::resolveCurrentPage('page');
+        $units = new \Illuminate\Pagination\LengthAwarePaginator(
+            $sortedUnits->forPage($currentPage, $perPage),
+            $sortedUnits->count(),
+            $perPage,
+            $currentPage,
+            ['path' => \Illuminate\Pagination\Paginator::resolveCurrentPath(), 'query' => request()->query()]
+        );
 
         return view('projects.show', compact('project', 'units'));
     }

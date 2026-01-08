@@ -106,9 +106,7 @@
             <strong>Project:</strong> {{ $booking->unit->floor->project->name ?? '-' }}
           </td>
           <td style="border:0; text-align:right;">
-            <strong>Unit Code:</strong> {{ $booking->unit->unit_code ?? '-' }}<br>
-            <strong>Date:</strong> {{ optional($payment->paid_at)->format('Y-m-d') ?? now()->format('Y-m-d') }}<br>
-            <strong>Reference:</strong> {{ $payment->reference_no ?? '—' }}
+            <strong>Unit Code:</strong> {{ $booking->unit->unit_code ?? '-' }}
           </td>
         </tr>
       </table>
@@ -116,7 +114,6 @@
       {{-- Single payment row only --}}
       @php
         $date       = optional($payment->paid_at)->format('Y-m-d') ?: '-';
-        $ref        = $payment->reference_no ?? '—';
         $amount     = (float) $payment->amount;
         $vat        = $amount > 0 ? round($amount * 0.05, 2) : 0.00;
         $base       = $amount > 0 ? round($amount - $vat, 2) : 0.00;
@@ -129,7 +126,6 @@
             <th>Installment</th>
             <th>Date</th>
             <th>Invoice No</th>
-            <th>Reference Code</th>
             <th>Amount (incl. VAT)</th>
             <th>VAT</th>
             <th>Previous Remaining</th>
@@ -141,7 +137,6 @@
             <td>{{ $label }}</td>
             <td>{{ $date }}</td>
             <td>{{ $invoiceNo }}</td>
-            <td>{{ $ref }}</td>
             <td>{{ number_format($amount, 2) }}</td>
             <td>{{ number_format($vat, 2) }}</td>
             <td>{{ number_format($previousRemaining, 2) }}</td>

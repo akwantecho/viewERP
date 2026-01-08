@@ -31,6 +31,8 @@ return [
         'recently' => 'مؤخرًا',
     ],
 
+    'currency' => 'ر.ع',
+
     'entities' => [
         'project' => 'المشروع',
         'projects' => 'المشاريع',

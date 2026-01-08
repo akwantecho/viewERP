@@ -9,7 +9,7 @@
     <div class="overflow-x-auto bg-white shadow rounded-xl p-6">
         <div class="flex justify-between items-center mb-4">
             <h2 class="text-xl font-bold text-[#1f2937]">Project Financial Statement</h2>
-            <a href="{{ route('projects.statement.export', $project->id) }}" 
+            <a href="{{ route('projects.statement.pdf', $project->id) }}"
    class="px-4 py-2 bg-[#4b5563] text-white rounded-lg hover:bg-gray-800 text-sm">
    📄 Download PDF
 </a>

@@ -19,6 +19,7 @@ return [
         'customers' => 'العملاء',
         'projects' => 'المشاريع',
         'installment_alerts' => 'تنبيهات الأقساط',
+        'total_statement' => 'الكشف المالي الشامل',
         'users' => 'المستخدمون',
         'roles_permissions' => 'الأدوار والصلاحيات',
         'backup_center' => 'مركز النسخ الاحتياطي',

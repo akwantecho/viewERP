@@ -19,6 +19,7 @@ return [
         'customers' => 'Customers',
         'projects' => 'Projects',
         'installment_alerts' => 'Installment Alerts',
+        'total_statement' => 'Total Statement',
         'users' => 'Users',
         'roles_permissions' => 'Roles & Permissions',
         'backup_center' => 'Backup Center',

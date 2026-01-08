@@ -26,6 +26,12 @@ return [
         'perm'  => 'payments.view',
     ],
     [
+        'label' => 'navigation.items.total_statement',
+        'route' => 'reports.totalStatement',
+        'icon'  => 'chart-bar',
+        'perm'  => 'reports.view',
+    ],
+    [
         'heading' => 'navigation.sections.administration',
         'children' => [
             [
