@@ -6,8 +6,11 @@ use App\Models\Project;
 use App\Models\Payment;
 use App\Models\Installment;
 use App\Models\Booking;
+use App\Models\SyncLog;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Storage;
 
 class TotalStatementController extends Controller
 {
@@ -89,5 +92,144 @@ class TotalStatementController extends Controller
             'selectedMonthPaid',
             'selectedMonthExpected'
         ));
+    }
+
+    public function totalStatementAll()
+    {
+        // Get all projects with their units count
+        $projects = Project::withCount(['floors' => function ($query) {
+            $query->has('units');
+        }])
+        ->with('units')
+        ->get();
+
+        // Prepare rows for the view
+        $rows = $projects->map(function ($project) {
+            return [
+                'project_id' => $project->id,
+                'project_name' => $project->name,
+                'project_code' => $project->code,
+                'units_count' => $project->units->count(),
+            ];
+        });
+
+        // Get recent sync logs with pagination
+        $logs = SyncLog::with('project')
+            ->latest()
+            ->paginate(20);
+
+        return view('reports.total_statement_all', compact('rows', 'logs'));
+    }
+
+    public function exportTotalStatementAllPdf()
+    {
+        // Get all projects with their bookings and payment data
+        $projects = Project::withCount(['floors' => function ($query) {
+            $query->has('units');
+        }])
+        ->with(['units.booking.payments'])
+        ->get()
+        ->map(function ($project) {
+            $bookings = Booking::where('project_id', $project->id)->get();
+
+            $totalSalePrice = $bookings->sum('total_price');
+            $totalPaid = Payment::whereIn('booking_id', $bookings->pluck('id'))
+                ->sum('amount');
+
+            $progress = $totalSalePrice > 0
+                ? round(($totalPaid / $totalSalePrice) * 100, 1)
+                : 0;
+
+            $project->total_sale_price = $totalSalePrice;
+            $project->total_paid = $totalPaid;
+            $project->progress = $progress;
+            $project->remaining = max(0, $totalSalePrice - $totalPaid);
+
+            return $project;
+        })
+        ->sortByDesc('total_sale_price');
+
+        $pdf = Pdf::loadView('reports.total-statement-all-pdf', compact('projects'));
+
+        return $pdf->download('total-statement-all-projects-' . now()->format('Y-m-d') . '.pdf');
+    }
+
+    public function syncAllProjects()
+    {
+        try {
+            $projects = Project::all();
+            $successCount = 0;
+            $failCount = 0;
+            $batchId = uniqid('batch_');
+
+            foreach ($projects as $project) {
+                try {
+                    // Generate PDF for this project
+                    $bookings = Booking::where('project_id', $project->id)->get();
+
+                    $totalSalePrice = $bookings->sum('total_price');
+                    $totalPaid = Payment::whereIn('booking_id', $bookings->pluck('id'))
+                        ->sum('amount');
+
+                    $progress = $totalSalePrice > 0
+                        ? round(($totalPaid / $totalSalePrice) * 100, 1)
+                        : 0;
+
+                    $project->total_sale_price = $totalSalePrice;
+                    $project->total_paid = $totalPaid;
+                    $project->progress = $progress;
+                    $project->remaining = max(0, $totalSalePrice - $totalPaid);
+
+                    // Generate PDF
+                    $pdf = Pdf::loadView('reports.project-statement-pdf', ['project' => $project]);
+                    $pdfContent = $pdf->output();
+
+                    // Upload to S3
+                    $fileName = 'statements/' . $project->code . '-statement-' . now()->format('Y-m-d') . '.pdf';
+                    Storage::disk('s3')->put($fileName, $pdfContent);
+
+                    // Log success
+                    SyncLog::create([
+                        'project_id' => $project->id,
+                        'batch_id' => $batchId,
+                        'local_path' => null,
+                        'remote_path' => $fileName,
+                        'status' => 'success',
+                        'trigger' => 'manual',
+                        'message' => 'Project statement backed up successfully',
+                        'triggered_by' => auth()->user()->name ?? 'system',
+                        'file_hash' => md5($pdfContent),
+                    ]);
+
+                    $successCount++;
+                } catch (\Exception $e) {
+                    // Log failure
+                    SyncLog::create([
+                        'project_id' => $project->id,
+                        'batch_id' => $batchId,
+                        'local_path' => null,
+                        'remote_path' => null,
+                        'status' => 'failed',
+                        'trigger' => 'manual',
+                        'message' => 'Failed to backup: ' . $e->getMessage(),
+                        'triggered_by' => auth()->user()->name ?? 'system',
+                        'error_trace' => $e->getTraceAsString(),
+                    ]);
+
+                    $failCount++;
+                }
+            }
+
+            $message = "Backup completed: {$successCount} successful, {$failCount} failed";
+
+            return redirect()
+                ->route('profile.totalStatementAll')
+                ->with('success', $message);
+
+        } catch (\Exception $e) {
+            return redirect()
+                ->route('profile.totalStatementAll')
+                ->with('error', 'Backup process failed: ' . $e->getMessage());
+        }
     }
 }

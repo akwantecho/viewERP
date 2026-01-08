@@ -391,12 +391,11 @@
                     'bold', 'italic', '|',
                     'bulletedList', 'numberedList', '|',
                     'link', 'blockQuote', '|',
-                    'insertTable', 'uploadImage', '|',
-                    'removeFormat'
+                    'insertTable', 'imageUpload'
                 ]
             },
             image: {
-                toolbar: ['imageTextAlternative', '|', 'imageStyle:inline', 'imageStyle:block', 'imageStyle:side']
+                toolbar: ['imageTextAlternative']
             },
             table: {
                 contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells']
