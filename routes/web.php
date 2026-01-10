@@ -197,20 +197,31 @@ Route::middleware(['web', 'set.locale'])->group(function () {
             ->middleware('permission:customers.view')
             ->name('customers.show');
 
-        // Customer notes routes - simplified with shallow nesting
+        // Customer Notes - simplified like other modules (NO policies)
+
+        // View notes
         Route::resource('customers.notes', CustomerNoteController::class)
             ->shallow()
-            ->only(['index', 'create', 'store', 'edit', 'update', 'destroy'])
-            ->middleware([
-                'index' => 'permission:customers.view',
-                'create' => 'permission:customers.manage',
-                'store' => 'permission:customers.manage',
-                'edit' => 'permission:customers.manage',
-                'update' => 'permission:customers.manage',
-                'destroy' => 'permission:customers.manage',
-            ]);
+            ->only(['index'])
+            ->names([
+                'index' => 'customers.notes.index',
+            ])
+            ->middleware('permission:customers.view');
 
-        // Keep upload route separate with light throttle
+        // Manage notes
+        Route::resource('customers.notes', CustomerNoteController::class)
+            ->shallow()
+            ->only(['create', 'store', 'edit', 'update', 'destroy'])
+            ->names([
+                'create' => 'customers.notes.create',
+                'store' => 'customers.notes.store',
+                'edit' => 'customers.notes.edit',
+                'update' => 'customers.notes.update',
+                'destroy' => 'customers.notes.destroy',
+            ])
+            ->middleware('permission:customers.manage');
+
+        // Upload remains separate with light throttle
         Route::post('/customers/{customer}/notes/upload', [CustomerNoteUploadController::class, 'store'])
             ->whereNumber('customer')
             ->middleware(['permission:customers.manage', 'throttle:15,1'])

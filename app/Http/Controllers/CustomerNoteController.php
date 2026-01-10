@@ -76,9 +76,10 @@ class CustomerNoteController extends Controller
             ->with('success', 'Note saved successfully.');
     }
 
-    public function update(Request $request, CustomerNote $note, HtmlSanitizer $sanitizer): RedirectResponse
+    public function update(Request $request, CustomerNote $note): RedirectResponse
     {
         $customer = $note->customer;
+        $sanitizer = app(HtmlSanitizer::class);
 
         $data = $this->validateNote($request, true);
 

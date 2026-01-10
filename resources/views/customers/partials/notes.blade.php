@@ -1,7 +1,7 @@
 @php
     $isEditing = isset($editingNote) && $editingNote;
     $formAction = $isEditing
-        ? route('customers.notes.update', [$customer, $editingNote])
+        ? route('customers.notes.update', $editingNote)
         : route('customers.notes.store', $customer);
     $formMethod = $isEditing ? 'PUT' : 'POST';
     $tagsValue = old('tags');
@@ -204,14 +204,14 @@
                         </div>
                     </div>
                     <div class="flex items-center justify-between border-t border-gray-100 px-5 py-3 text-sm">
-                        <a href="{{ route('notes.edit', $note) }}"
+                        <a href="{{ route('customers.notes.edit', $note) }}"
                            class="inline-flex items-center gap-1 text-emerald-600 hover:text-emerald-700 font-medium">
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                             </svg>
                             {{ __('customers.profile.notes.edit') }}
                         </a>
-                        <form method="POST" action="{{ route('notes.destroy', $note) }}"
+                        <form method="POST" action="{{ route('customers.notes.destroy', $note) }}"
                               data-confirm
                               data-confirm-title="{{ __('customers.profile.notes.delete_title') }}"
                               data-confirm-message="{{ __('customers.profile.notes.delete_message') }}">
