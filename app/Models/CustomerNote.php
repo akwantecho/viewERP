@@ -35,6 +35,17 @@ class CustomerNote extends Model
         'pinned_at' => 'datetime',
     ];
 
+    protected static function booted(): void
+    {
+        // Clean up rich text content when note is deleted
+        static::deleting(function (CustomerNote $note) {
+            // The HasRichText trait should handle this, but ensure it's cleaned up
+            if ($note->content) {
+                $note->content()->delete();
+            }
+        });
+    }
+
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);

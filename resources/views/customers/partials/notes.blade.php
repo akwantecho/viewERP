@@ -211,8 +211,8 @@
                             </svg>
                             {{ __('customers.profile.notes.edit') }}
                         </a>
-                        <form method="POST" action="{{ route('customers.notes.destroy', [$customer->id, $note->id]) }}"
-                              data-confirm="delete"
+                        <form method="POST" action="{{ route('customers.notes.destroy', [$customer, $note]) }}"
+                              data-confirm
                               data-confirm-title="{{ __('customers.profile.notes.delete_title') }}"
                               data-confirm-message="{{ __('customers.profile.notes.delete_message') }}">
                             @csrf
@@ -242,26 +242,4 @@
     </div>
 </section>
 
-@push('scripts')
-<script>
-(function() {
-    // Simple script for delete confirmation (no CKEditor needed - using full-page Trix editor)
-    const tabPanel = document.querySelector('[data-tab-panel="notes"]');
-    if (!tabPanel) return;
-
-    // Delete confirmation
-    const deleteForms = tabPanel.querySelectorAll('form[data-confirm="delete"]');
-    deleteForms.forEach(form => {
-        form.addEventListener('submit', function(e) {
-            const title = this.dataset.confirmTitle || 'Are you sure?';
-            const message = this.dataset.confirmMessage || 'This action cannot be undone.';
-
-            if (!confirm(message)) {
-                e.preventDefault();
-                return false;
-            }
-        });
-    });
-})();
-</script>
-@endpush
+{{-- Delete confirmation is handled by the global script in layouts/app.blade.php --}}
