@@ -164,14 +164,35 @@
                 </div>
             </div>
 
-            <div class="grid gap-4 text-right sm:grid-cols-2">
-                <div class="rounded-2xl bg-white/15 p-5">
-                    <p class="text-sm text-white/70">{{ __('customers.profile.reserved_units') }}</p>
-                    <p class="mt-2 text-3xl font-semibold">{{ $unitsCount }}</p>
+            <div class="flex flex-col gap-4">
+                <div class="grid gap-4 text-right sm:grid-cols-2">
+                    <div class="rounded-2xl bg-white/15 p-5">
+                        <p class="text-sm text-white/70">{{ __('customers.profile.reserved_units') }}</p>
+                        <p class="mt-2 text-3xl font-semibold">{{ $unitsCount }}</p>
+                    </div>
+                    <div class="rounded-2xl bg-white/15 p-5">
+                        <p class="text-sm text-white/70">{{ __('customers.profile.total_value') }}</p>
+                        <p class="mt-2 text-3xl font-semibold">{{ number_format($totalValue, 2) }}</p>
+                    </div>
                 </div>
-                <div class="rounded-2xl bg-white/15 p-5">
-                    <p class="text-sm text-white/70">{{ __('customers.profile.total_value') }}</p>
-                    <p class="mt-2 text-3xl font-semibold">{{ number_format($totalValue, 2) }}</p>
+
+                <div class="flex justify-end gap-3">
+                    <a href="{{ route('customers.notes.index', $customer) }}"
+                       class="inline-flex items-center gap-2 rounded-xl bg-white/20 hover:bg-white/30 px-4 py-2 text-sm font-semibold text-white backdrop-blur-sm transition">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                        Notes
+                    </a>
+                    @can('customers.manage')
+                    <a href="{{ route('customers.edit', $customer) }}"
+                       class="inline-flex items-center gap-2 rounded-xl bg-white/20 hover:bg-white/30 px-4 py-2 text-sm font-semibold text-white backdrop-blur-sm transition">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                        Edit Customer
+                    </a>
+                    @endcan
                 </div>
             </div>
         </div>
@@ -183,18 +204,7 @@
         </div>
     @endif
 
-    <div class="rounded-2xl border border-gray-100 bg-white p-2 shadow-sm">
-        <div class="flex items-center gap-2">
-            <button type="button" data-tab-toggle="overview" class="tab-button inline-flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-100" aria-controls="overview" aria-selected="true">
-                {{ __('customers.profile.tabs.overview') }}
-            </button>
-            <button type="button" data-tab-toggle="notes" class="tab-button inline-flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-gray-500 transition hover:bg-gray-100" aria-controls="notes" aria-selected="false">
-                {{ __('customers.profile.tabs.notes') }}
-            </button>
-        </div>
-    </div>
-
-    <section id="overview" data-tab-panel="overview" class="space-y-6">
+    <section id="overview" class="space-y-6">
         <div class="grid gap-6 lg:grid-cols-2">
             <div class="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
                 <h2 class="text-lg font-semibold text-gray-900">{{ __('customers.profile.contact.title') }}</h2>
@@ -378,8 +388,6 @@
             </div>
         </div>
     </section>
-
-    @include('customers.partials.notes', ['customer' => $customer, 'notes' => $notes, 'editingNote' => $editingNote])
 </div>
 
 @push('scripts')

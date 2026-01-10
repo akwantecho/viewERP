@@ -13,6 +13,16 @@ use Illuminate\Support\Str;
 
 class CustomerNoteController extends Controller
 {
+    public function index(Customer $customer)
+    {
+        $notes = CustomerNote::where('customer_id', $customer->id)
+            ->orderBy('is_pinned', 'desc')
+            ->orderBy('updated_at', 'desc')
+            ->paginate(15);
+
+        return view('customers.notes.index', compact('customer', 'notes'));
+    }
+
     public function create(Customer $customer)
     {
         return view('customers.notes.create', compact('customer'));
@@ -62,7 +72,7 @@ class CustomerNoteController extends Controller
         }
 
         return redirect()
-            ->to(route('customers.profile', $customer) . '#notes')
+            ->route('customers.notes.index', $customer)
             ->with('success', 'Note saved successfully.');
     }
 
@@ -104,7 +114,7 @@ class CustomerNoteController extends Controller
         }
 
         return redirect()
-            ->to(route('customers.profile', $customer) . '#notes')
+            ->route('customers.notes.index', $customer)
             ->with('success', 'Note updated successfully.');
     }
 
@@ -115,7 +125,7 @@ class CustomerNoteController extends Controller
         $note->delete();
 
         return redirect()
-            ->to(route('customers.profile', $customer) . '#notes')
+            ->route('customers.notes.index', $customer)
             ->with('success', 'Note deleted successfully.');
     }
 

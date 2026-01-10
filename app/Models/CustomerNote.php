@@ -39,10 +39,10 @@ class CustomerNote extends Model
     {
         // Clean up rich text content when note is deleted
         static::deleting(function (CustomerNote $note) {
-            // The HasRichText trait should handle this, but ensure it's cleaned up
-            if ($note->content) {
-                $note->content()->delete();
-            }
+            // Delete associated rich text records
+            $note->morphMany(\Tonysm\RichTextLaravel\Models\RichText::class, 'record')
+                ->where('field', 'content')
+                ->delete();
         });
     }
 

@@ -196,7 +196,11 @@ Route::middleware(['web', 'set.locale'])->group(function () {
             ->whereNumber('customer')
             ->middleware('permission:customers.view')
             ->name('customers.show');
-        // Full-page note editor routes
+        // Customer notes routes
+        Route::get('/customers/{customer}/notes', [CustomerNoteController::class, 'index'])
+            ->whereNumber('customer')
+            ->middleware('permission:customers.view')
+            ->name('customers.notes.index');
         Route::get('/customers/{customer}/notes/create', [CustomerNoteController::class, 'create'])
             ->whereNumber('customer')
             ->middleware('permission:customers.manage')
