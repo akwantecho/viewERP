@@ -10,6 +10,10 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
+    {{-- Trix Editor CSS & JS --}}
+    <link rel="stylesheet" href="https://unpkg.com/trix@2.1.16/dist/trix.css">
+    <script src="https://unpkg.com/trix@2.1.16/dist/trix.umd.min.js"></script>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.10/dist/cdn.min.js"></script>
 
@@ -38,6 +42,7 @@
     </style>
     @stack('styles')
     @yield('head')
+    <x-rich-text::styles theme="richtextlaravel" data-turbo-track="false" />
 </head>
 <body class="bg-gray-50 text-gray-900 leading-relaxed tracking-wide" x-data="{ sidebarOpen: false, sidebarMini: false }" :class="sidebarMini ? 'sidebar-mini' : ''">
     @include('layouts.partials.sidebar')
@@ -117,5 +122,26 @@
 
     @stack('scripts')
 
+    <script>
+    // Confirmation dialog for forms with data-confirm attribute
+    document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('submit', function(e) {
+            const form = e.target;
+            if (form.hasAttribute('data-confirm')) {
+                e.preventDefault();
+
+                const confirmType = form.getAttribute('data-confirm');
+                const confirmTitle = form.getAttribute('data-confirm-title') || 'Are you sure?';
+                const confirmMessage = form.getAttribute('data-confirm-message') || 'This action cannot be undone.';
+
+                if (confirm(confirmTitle + '\n\n' + confirmMessage)) {
+                    // Remove the data-confirm attribute to prevent infinite loop
+                    form.removeAttribute('data-confirm');
+                    form.submit();
+                }
+            }
+        });
+    });
+    </script>
 </body>
 </html>

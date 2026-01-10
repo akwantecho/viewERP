@@ -196,23 +196,34 @@ Route::middleware(['web', 'set.locale'])->group(function () {
             ->whereNumber('customer')
             ->middleware('permission:customers.view')
             ->name('customers.show');
-        Route::post('/customers/{customer}/notes', [CustomerNoteController::class, 'store'])
+        // Full-page note editor routes
+        Route::get('/customers/{customer}/notes/create', [CustomerNoteController::class, 'create'])
             ->whereNumber('customer')
             ->middleware('permission:customers.manage')
+            ->name('customers.notes.create');
+        Route::get('/customers/{customer}/notes/{note}/edit', [CustomerNoteController::class, 'edit'])
+            ->whereNumber('customer')
+            ->whereNumber('note')
+            ->middleware('permission:customers.manage')
+            ->name('customers.notes.edit');
+
+        Route::post('/customers/{customer}/notes', [CustomerNoteController::class, 'store'])
+            ->whereNumber('customer')
+            ->middleware(['permission:customers.manage', 'throttle:30,1'])
             ->name('customers.notes.store');
         Route::put('/customers/{customer}/notes/{note}', [CustomerNoteController::class, 'update'])
             ->whereNumber('customer')
             ->whereNumber('note')
-            ->middleware('permission:customers.manage')
+            ->middleware(['permission:customers.manage', 'throttle:30,1'])
             ->name('customers.notes.update');
         Route::delete('/customers/{customer}/notes/{note}', [CustomerNoteController::class, 'destroy'])
             ->whereNumber('customer')
             ->whereNumber('note')
-            ->middleware('permission:customers.manage')
+            ->middleware(['permission:customers.manage', 'throttle:20,1'])
             ->name('customers.notes.destroy');
         Route::post('/customers/{customer}/notes/upload', [CustomerNoteUploadController::class, 'store'])
             ->whereNumber('customer')
-            ->middleware('permission:customers.manage')
+            ->middleware(['permission:customers.manage', 'throttle:15,1'])
             ->name('customers.notes.upload');
 
         Route::prefix('units')->name('units.')->group(function () {

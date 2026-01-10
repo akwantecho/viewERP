@@ -22,52 +22,46 @@
         : 'customer-note-draft-' . $customer->id . '-new';
 @endphp
 
-@push('styles')
-<style>
-    .note-fullscreen-active {
-        position: fixed;
-        inset: 0;
-        background: #f9fafb;
-        z-index: 60;
-        overflow-y: auto;
-        padding: 2.5rem 1.5rem;
-    }
-
-    .note-fullscreen-active .note-fullscreen-card {
-        margin: 0 auto;
-        max-width: 960px;
-    }
-
-    .note-fullscreen-active .note-fullscreen-backdrop {
-        display: none;
-    }
-
-    body.note-scroll-lock {
-        overflow: hidden;
-    }
-</style>
-@endpush
-
 <section id="notes" data-tab-panel="notes">
-    <div class="rounded-2xl border border-gray-100 bg-white shadow-sm note-fullscreen-card" data-note-card>
+    <div class="rounded-2xl border border-gray-100 bg-white shadow-sm" data-note-card>
         <div class="border-b border-gray-100 px-6 py-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h2 class="text-lg font-semibold text-gray-900">{{ __('customers.profile.notes.title') }}</h2>
                 <p class="text-sm text-gray-500">{{ __('customers.profile.notes.subtitle') }}</p>
             </div>
-            <button type="button" data-note-fullscreen-toggle class="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M5 3a2 2 0 00-2 2v2a1 1 0 102 0V6h1a1 1 0 000-2H5zm10 0h-2a1 1 0 100 2h1v1a1 1 0 102 0V5a2 2 0 00-2-2zM5 15h1a1 1 0 110 2H5a2 2 0 01-2-2v-2a1 1 0 112 0v1zm10-3a1 1 0 00-1 1v1h-1a1 1 0 100 2h2a2 2 0 002-2v-2a1 1 0 10-2 0v1z" />
-                </svg>
-                <span
-                    data-note-fullscreen-label
-                    data-expand-label="{{ __('customers.profile.notes.expand') }}"
-                    data-collapse-label="{{ __('customers.profile.notes.collapse') }}"
-                >{{ __('customers.profile.notes.expand') }}</span>
-            </button>
+            <div class="flex items-center gap-2">
+                <a href="{{ route('customers.notes.create', $customer) }}"
+                   class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    <span>{{ __('New Note') }}</span>
+                </a>
+            </div>
         </div>
 
         <div class="px-6 py-6">
+            @if($notes->isEmpty())
+                <div class="text-center py-12">
+                    <svg class="mx-auto h-16 w-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                    <h3 class="mt-4 text-base font-medium text-gray-900">Create notes with full-page editor</h3>
+                    <p class="mt-2 text-sm text-gray-500">Click "New Note" to create a note with our powerful rich text editor</p>
+                    <div class="mt-6">
+                        <a href="{{ route('customers.notes.create', $customer) }}"
+                           class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-500">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Create Your First Note
+                        </a>
+                    </div>
+                </div>
+            @else
+
+            {{-- Legacy inline form hidden by default --}}
+            <div id="legacy-note-form" class="hidden">
             @if ($errors->any())
                 <div class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                     <strong class="font-semibold">{{ __('customers.profile.notes.errors_title') }}</strong>
@@ -147,6 +141,7 @@
                     @endif
                 </div>
             </form>
+            </div>
         </div>
     </div>
 
@@ -199,15 +194,36 @@
                         @endif
 
                         <div class="prose prose-sm max-w-none text-gray-700" style="max-height: 180px; overflow: hidden;">
-                            {!! $note->html !!}
+                            @if($note->content)
+                                {!! $note->content !!}
+                            @elseif($note->html)
+                                {!! $note->html !!}
+                            @else
+                                <p class="text-gray-400 italic">No content</p>
+                            @endif
                         </div>
                     </div>
                     <div class="flex items-center justify-between border-t border-gray-100 px-5 py-3 text-sm">
-                        <a href="{{ route('customers.profile', $customer) . '?note=' . $note->id . '#notes' }}" class="text-emerald-600 hover:text-emerald-700">{{ __('customers.profile.notes.edit') }}</a>
-                        <form method="POST" action="{{ route('customers.notes.destroy', [$customer, $note]) }}" data-confirm="delete" data-confirm-title="{{ __('customers.profile.notes.delete_title') }}" data-confirm-message="{{ __('customers.profile.notes.delete_message') }}">
+                        <a href="{{ route('customers.notes.edit', [$customer, $note]) }}"
+                           class="inline-flex items-center gap-1 text-emerald-600 hover:text-emerald-700 font-medium">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                            {{ __('customers.profile.notes.edit') }}
+                        </a>
+                        <form method="POST" action="{{ route('customers.notes.destroy', [$customer->id, $note->id]) }}"
+                              data-confirm="delete"
+                              data-confirm-title="{{ __('customers.profile.notes.delete_title') }}"
+                              data-confirm-message="{{ __('customers.profile.notes.delete_message') }}">
                             @csrf
                             @method('DELETE')
-                            <button type="submit" class="text-red-600 hover:text-red-700">{{ __('customers.profile.notes.delete') }}</button>
+                            <button type="submit"
+                                    class="inline-flex items-center gap-1 text-red-600 hover:text-red-700 font-medium">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
+                                {{ __('customers.profile.notes.delete') }}
+                            </button>
                         </form>
                     </div>
                 </article>
@@ -221,314 +237,31 @@
         <div class="pt-2">
             {{ $notes->withQueryString()->links() }}
         </div>
+            @endif
+        </div>
     </div>
 </section>
 
-@php
-    $noteStrings = [
-        'expand' => __('customers.profile.notes.expand'),
-        'collapse' => __('customers.profile.notes.collapse'),
-        'editorError' => __('customers.profile.notes.form.editor_error'),
-        'uploadNetworkError' => __('customers.profile.notes.upload.network_error'),
-        'uploadFailed' => __('customers.profile.notes.upload.failed'),
-        'uploadInvalidResponse' => __('customers.profile.notes.upload.invalid_response'),
-    ];
-@endphp
-
 @push('scripts')
-<script src="https://cdn.ckeditor.com/ckeditor5/41.1.0/classic/ckeditor.js"></script>
 <script>
 (function() {
+    // Simple script for delete confirmation (no CKEditor needed - using full-page Trix editor)
     const tabPanel = document.querySelector('[data-tab-panel="notes"]');
     if (!tabPanel) return;
 
-    const strings = @json($noteStrings);
+    // Delete confirmation
+    const deleteForms = tabPanel.querySelectorAll('form[data-confirm="delete"]');
+    deleteForms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            const title = this.dataset.confirmTitle || 'Are you sure?';
+            const message = this.dataset.confirmMessage || 'This action cannot be undone.';
 
-    const storageKey = tabPanel.querySelector('#customer-note-form')?.dataset.storageKey;
-    const tagsHidden = document.getElementById('note-tags-hidden');
-    const tagsContainer = document.getElementById('note-tags');
-    const tagInput = document.getElementById('note-tag-input');
-    let tags = [];
-    let pendingHtml = null;
-
-    function renderTags() {
-        if (!tagsContainer) return;
-        tagsContainer.querySelectorAll('[data-tag-item]').forEach(el => el.remove());
-        tags.forEach((tag, idx) => {
-            const pill = document.createElement('span');
-            pill.dataset.tagItem = idx;
-            pill.className = 'inline-flex items-center gap-1 rounded-full bg-gray-900/5 px-2.5 py-1 text-xs font-medium text-gray-600';
-            pill.innerHTML = `<span>#${tag}</span><button type="button" data-remove-tag="${idx}" class="text-gray-400 hover:text-gray-600">×</button>`;
-            tagsContainer.insertBefore(pill, tagInput);
-        });
-        if (tagsHidden) {
-            tagsHidden.value = JSON.stringify(tags);
-        }
-    }
-
-    function addTag(tag) {
-        const trimmed = tag.trim();
-        if (!trimmed || tags.includes(trimmed)) return;
-        tags.push(trimmed);
-        renderTags();
-    }
-
-    function removeTag(index) {
-        tags.splice(index, 1);
-        renderTags();
-    }
-
-    if (tagsHidden && tagsHidden.value) {
-        try {
-            const parsed = JSON.parse(tagsHidden.value);
-            if (Array.isArray(parsed)) {
-                tags = parsed;
-            }
-        } catch (_) {
-            tags = [];
-        }
-    }
-    renderTags();
-
-    tagInput?.addEventListener('keydown', function (event) {
-        if (event.key === 'Enter') {
-            event.preventDefault();
-            addTag(tagInput.value);
-            tagInput.value = '';
-        }
-        if (event.key === 'Backspace' && !tagInput.value && tags.length) {
-            event.preventDefault();
-            tags.pop();
-            renderTags();
-        }
-    });
-
-    tagsContainer?.addEventListener('click', function (event) {
-        const target = event.target;
-        if (target instanceof HTMLElement && target.dataset.removeTag) {
-            removeTag(parseInt(target.dataset.removeTag, 10));
-        }
-    });
-
-    const editorSelector = '#note-html';
-    const textareaEl = document.querySelector(editorSelector);
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-    const uploadUrl = '{{ route('customers.notes.upload', $customer) }}';
-    const form = document.getElementById('customer-note-form');
-    const loadingIndicator = document.getElementById('note-editor-loading');
-    let editorInstance = null;
-
-    class CustomerNoteUploadAdapter {
-        constructor(loader) {
-            this.loader = loader;
-            this.xhr = null;
-        }
-
-        upload() {
-            return this.loader.file.then(file => new Promise((resolve, reject) => {
-                const xhr = new XMLHttpRequest();
-                xhr.open('POST', uploadUrl, true);
-                xhr.responseType = 'json';
-                xhr.setRequestHeader('X-CSRF-TOKEN', csrfToken);
-                xhr.onerror = () => reject(strings.uploadNetworkError);
-                xhr.onabort = () => reject();
-                xhr.onload = () => {
-                    const response = xhr.response;
-                    if (!response || xhr.status >= 400) {
-                        return reject(strings.uploadFailed);
-                    }
-                    const location = response.location || response.url;
-                    if (location) {
-                        resolve({ default: location });
-                    } else {
-                        reject(strings.uploadInvalidResponse);
-                    }
-                };
-
-                const data = new FormData();
-                data.append('file', file);
-                xhr.send(data);
-                this.xhr = xhr;
-            }));
-        }
-
-        abort() {
-            if (this.xhr) {
-                this.xhr.abort();
-            }
-        }
-    }
-
-    function CustomerNoteUploadAdapterPlugin(editor) {
-        editor.plugins.get('FileRepository').createUploadAdapter = loader => new CustomerNoteUploadAdapter(loader);
-    }
-
-    function resolveEditorConstructor() {
-        if (window.ClassicEditor) {
-            return window.ClassicEditor;
-        }
-        if (window.CKEDITOR && window.CKEDITOR.ClassicEditor) {
-            return window.CKEDITOR.ClassicEditor;
-        }
-        return null;
-    }
-
-    function initializeCKEditor() {
-        const EditorConstructor = resolveEditorConstructor();
-        if (!EditorConstructor || !textareaEl) {
-            if (loadingIndicator) {
-                loadingIndicator.textContent = strings.editorError;
-            }
-            return;
-        }
-
-        EditorConstructor.create(textareaEl, {
-            extraPlugins: [CustomerNoteUploadAdapterPlugin],
-            toolbar: {
-                items: [
-                    'undo', 'redo', '|',
-                    'heading', '|',
-                    'bold', 'italic', '|',
-                    'bulletedList', 'numberedList', '|',
-                    'link', 'blockQuote', '|',
-                    'insertTable', 'imageUpload'
-                ]
-            },
-            image: {
-                toolbar: ['imageTextAlternative']
-            },
-            table: {
-                contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells']
-            },
-            licenseKey: ''
-        }).then(editor => {
-            editorInstance = editor;
-            if (pendingHtml) {
-                editor.setData(pendingHtml);
-                pendingHtml = null;
-            }
-            if (loadingIndicator) {
-                loadingIndicator.remove();
-            }
-        }).catch(error => {
-            console.error('CKEditor initialization error', error);
-            if (loadingIndicator) {
-                loadingIndicator.textContent = strings.editorError;
+            if (!confirm(message)) {
+                e.preventDefault();
+                return false;
             }
         });
-    }
-
-    initializeCKEditor();
-
-    const fullscreenToggle = tabPanel.querySelector('[data-note-fullscreen-toggle]');
-    const fullscreenLabel = tabPanel.querySelector('[data-note-fullscreen-label]');
-
-    function setFullscreen(active) {
-        if (active) {
-            tabPanel.classList.add('note-fullscreen-active');
-        } else {
-            tabPanel.classList.remove('note-fullscreen-active');
-        }
-        if (active) {
-            document.body.classList.add('note-scroll-lock');
-            fullscreenLabel.textContent = fullscreenLabel?.dataset.collapseLabel || strings.collapse;
-            fullscreenToggle?.classList.add('bg-gray-900', 'text-white', 'border-transparent');
-        } else {
-            document.body.classList.remove('note-scroll-lock');
-            fullscreenLabel.textContent = fullscreenLabel?.dataset.expandLabel || strings.expand;
-            fullscreenToggle?.classList.remove('bg-gray-900', 'text-white', 'border-transparent');
-        }
-    }
-
-    fullscreenToggle?.addEventListener('click', () => {
-        const isActive = !tabPanel.classList.contains('note-fullscreen-active');
-        setFullscreen(isActive);
     });
-
-    document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape' && tabPanel.classList.contains('note-fullscreen-active')) {
-            setFullscreen(false);
-        }
-    });
-
-    const draftIntervalMs = 5000;
-    if (storageKey && form) {
-        try {
-            const saved = localStorage.getItem(storageKey);
-            if (saved) {
-                const data = JSON.parse(saved);
-                if (data.title !== undefined) {
-                    const titleInput = document.getElementById('note-title');
-                    if (titleInput && !titleInput.value) {
-                        titleInput.value = data.title;
-                    }
-                }
-                if (data.visibility) {
-                    const visibilitySelect = form.querySelector('select[name="visibility"]');
-                    if (visibilitySelect) visibilitySelect.value = data.visibility;
-                }
-                if (data.color) {
-                    const colorInput = form.querySelector('input[name="color"]');
-                    if (colorInput) colorInput.value = data.color;
-                }
-                if (typeof data.is_pinned === 'boolean') {
-                    const pinCheckbox = form.querySelector('input[name="is_pinned"]');
-                    if (pinCheckbox) pinCheckbox.checked = data.is_pinned;
-                }
-                if (Array.isArray(data.tags) && !tags.length) {
-                    tags = data.tags;
-                    renderTags();
-                }
-                if (data.html) {
-                    pendingHtml = data.html;
-                    if (editorInstance) {
-                        editorInstance.setData(data.html);
-                        pendingHtml = null;
-                    }
-                }
-            }
-        } catch (_) {
-            /* ignore */
-        }
-
-        const saveDraft = function() {
-            const payload = {
-                title: document.getElementById('note-title')?.value || '',
-                visibility: form.querySelector('select[name="visibility"]')?.value || 'team',
-                color: form.querySelector('input[name="color"]')?.value || '#f8fafc',
-                is_pinned: form.querySelector('input[name="is_pinned"]')?.checked || false,
-                tags,
-                html: editorInstance ? editorInstance.getData() : (textareaEl?.value || ''),
-            };
-            try {
-                localStorage.setItem(storageKey, JSON.stringify(payload));
-            } catch (_) {
-                /* ignore quota errors */
-            }
-        };
-
-        const intervalId = window.setInterval(saveDraft, draftIntervalMs);
-        form.addEventListener('submit', function () {
-            if (editorInstance) {
-                textareaEl.value = editorInstance.getData();
-            }
-            window.clearInterval(intervalId);
-            if (storageKey) {
-                localStorage.removeItem(storageKey);
-            }
-        });
-
-        window.addEventListener('beforeunload', saveDraft);
-
-        const clearLinks = form.querySelectorAll('[data-clear-draft="true"]');
-        clearLinks.forEach((link) => {
-            link.addEventListener('click', function () {
-                if (storageKey) {
-                    localStorage.removeItem(storageKey);
-                }
-            });
-        });
-    }
 })();
 </script>
 @endpush

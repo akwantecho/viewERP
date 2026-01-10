@@ -6,22 +6,27 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Tonysm\RichTextLaravel\Models\Traits\HasRichText;
 
 class CustomerNote extends Model
 {
-    use HasFactory;
+    use HasFactory, HasRichText;
 
     protected $fillable = [
         'customer_id',
         'user_id',
         'title',
-        'html',
+        'html', // Keep for backward compatibility
         'text',
         'tags',
         'color',
         'is_pinned',
         'visibility',
         'pinned_at',
+    ];
+
+    protected $richTextAttributes = [
+        'content', // New rich text field
     ];
 
     protected $casts = [
