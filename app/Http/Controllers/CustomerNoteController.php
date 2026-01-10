@@ -28,9 +28,9 @@ class CustomerNoteController extends Controller
         return view('customers.notes.create', compact('customer'));
     }
 
-    public function edit(Customer $customer, CustomerNote $note)
+    public function edit(CustomerNote $note)
     {
-        $this->ensureOwnership($customer, $note);
+        $customer = $note->customer;
         return view('customers.notes.edit', compact('customer', 'note'));
     }
 
@@ -76,9 +76,9 @@ class CustomerNoteController extends Controller
             ->with('success', 'Note saved successfully.');
     }
 
-    public function update(Request $request, Customer $customer, CustomerNote $note, HtmlSanitizer $sanitizer): RedirectResponse
+    public function update(Request $request, CustomerNote $note, HtmlSanitizer $sanitizer): RedirectResponse
     {
-        $this->ensureOwnership($customer, $note);
+        $customer = $note->customer;
 
         $data = $this->validateNote($request, true);
 
@@ -114,26 +114,19 @@ class CustomerNoteController extends Controller
         }
 
         return redirect()
-            ->route('customers.notes.index', $customer)
+            ->route('customers.profile', $customer->id . '#notes')
             ->with('success', 'Note updated successfully.');
     }
 
-    public function destroy(Customer $customer, CustomerNote $note): RedirectResponse
+    public function destroy(CustomerNote $note): RedirectResponse
     {
-        $this->ensureOwnership($customer, $note);
+        $customer = $note->customer;
 
         $note->delete();
 
         return redirect()
-            ->route('customers.notes.index', $customer)
+            ->route('customers.profile', $customer->id . '#notes')
             ->with('success', 'Note deleted successfully.');
-    }
-
-    protected function ensureOwnership(Customer $customer, CustomerNote $note): void
-    {
-        if ($note->customer_id !== $customer->id) {
-            abort(404);
-        }
     }
 
     protected function validateNote(Request $request, bool $isUpdate = false): array

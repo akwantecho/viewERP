@@ -3,6 +3,7 @@
 return [
     'users' => ['view', 'create', 'edit', 'delete'],
     'roles' => ['manage'],
+    'customers' => ['view', 'manage'],
     'projects' => ['view', 'create', 'update', 'delete', 'structure'],
     'bookings' => ['view', 'create', 'delete'],
     'payments' => ['view', 'create', 'update', 'delete'],

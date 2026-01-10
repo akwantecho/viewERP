@@ -55,7 +55,7 @@
             </div>
         @endif
 
-        <form id="note-form" method="POST" action="{{ route('customers.notes.update', [$customer, $note]) }}" class="space-y-6">
+        <form id="note-form" method="POST" action="{{ route('notes.update', $note) }}" class="space-y-6">
             @csrf
             @method('PUT')
 
