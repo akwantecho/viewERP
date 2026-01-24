@@ -97,4 +97,16 @@ return [
             'empty' => 'No units found in this project.',
         ],
     ],
+
+    'delete' => [
+        'title' => 'Danger zone',
+        'description' => 'Deleting this project will remove all floors, units, bookings, installments, and payment receipts linked to it.',
+        'payments_hint' => 'Payments linked to this project are removed first (:count found).',
+        'confirm_title' => 'Delete this project?',
+        'confirm_message' => 'This action is permanent and cannot be undone.',
+        'button' => 'Delete project',
+        'irreversible' => 'All related data will be erased permanently.',
+        'success' => 'Project ":name" deleted successfully. Removed :payments payment(s) before deleting the project.',
+        'error' => 'Could not delete the project. Please try again or contact an administrator.',
+    ],
 ];

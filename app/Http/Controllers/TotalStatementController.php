@@ -154,6 +154,67 @@ class TotalStatementController extends Controller
         return $pdf->download('total-statement-all-projects-' . now()->format('Y-m-d') . '.pdf');
     }
 
+    public function exportStatementPdf(Project $project)
+    {
+        // Eager-load units with floor and booking data (same as statement view)
+        $units = $project->units()->with(['floor', 'booking.installments', 'booking.payments'])->get();
+
+        $pdf = Pdf::loadView('reports.project-statement-pdf', compact('project', 'units'));
+
+        return $pdf->download($project->code . '-statement-' . now()->format('Y-m-d') . '.pdf');
+    }
+
+    public function syncProjectStatement(Project $project)
+    {
+        try {
+            // Load units for the PDF view
+            $units = $project->units()->with(['floor', 'booking.installments', 'booking.payments'])->get();
+
+            // Generate PDF
+            $pdf = Pdf::loadView('reports.project-statement-pdf', compact('project', 'units'));
+            $pdfContent = $pdf->output();
+
+            // Upload to S3
+            $fileName = 'statements/' . $project->code . '-statement-' . now()->format('Y-m-d') . '.pdf';
+            Storage::disk('s3')->put($fileName, $pdfContent);
+
+            // Log success
+            SyncLog::create([
+                'project_id' => $project->id,
+                'batch_id' => uniqid('single_'),
+                'local_path' => null,
+                'remote_path' => $fileName,
+                'status' => 'success',
+                'trigger' => 'manual',
+                'message' => 'Project statement backed up successfully',
+                'triggered_by' => auth()->user()->name ?? 'system',
+                'file_hash' => md5($pdfContent),
+            ]);
+
+            return redirect()
+                ->route('projects.statement', $project)
+                ->with('success', 'Statement backed up to S3 successfully.');
+
+        } catch (\Exception $e) {
+            // Log failure
+            SyncLog::create([
+                'project_id' => $project->id,
+                'batch_id' => uniqid('single_'),
+                'local_path' => null,
+                'remote_path' => null,
+                'status' => 'failed',
+                'trigger' => 'manual',
+                'message' => 'Failed to backup: ' . $e->getMessage(),
+                'triggered_by' => auth()->user()->name ?? 'system',
+                'error_trace' => $e->getTraceAsString(),
+            ]);
+
+            return redirect()
+                ->route('projects.statement', $project)
+                ->with('error', 'Backup failed: ' . $e->getMessage());
+        }
+    }
+
     public function syncAllProjects()
     {
         try {
@@ -164,24 +225,11 @@ class TotalStatementController extends Controller
 
             foreach ($projects as $project) {
                 try {
-                    // Generate PDF for this project
-                    $bookings = Booking::where('project_id', $project->id)->get();
-
-                    $totalSalePrice = $bookings->sum('total_price');
-                    $totalPaid = Payment::whereIn('booking_id', $bookings->pluck('id'))
-                        ->sum('amount');
-
-                    $progress = $totalSalePrice > 0
-                        ? round(($totalPaid / $totalSalePrice) * 100, 1)
-                        : 0;
-
-                    $project->total_sale_price = $totalSalePrice;
-                    $project->total_paid = $totalPaid;
-                    $project->progress = $progress;
-                    $project->remaining = max(0, $totalSalePrice - $totalPaid);
+                    // Load units for the PDF view
+                    $units = $project->units()->with(['floor', 'booking.installments', 'booking.payments'])->get();
 
                     // Generate PDF
-                    $pdf = Pdf::loadView('reports.project-statement-pdf', ['project' => $project]);
+                    $pdf = Pdf::loadView('reports.project-statement-pdf', compact('project', 'units'));
                     $pdfContent = $pdf->output();
 
                     // Upload to S3

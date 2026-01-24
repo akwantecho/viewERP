@@ -14,6 +14,11 @@
             {{ session('warning') }}
         </div>
     @endif
+    @if (session('error'))
+        <div class="bg-red-50 border border-red-300 text-red-800 p-3 rounded text-sm">
+            {{ session('error') }}
+        </div>
+    @endif
     @if ($errors->any())
         <div class="bg-red-100 border border-red-400 text-red-700 p-4 rounded">
             <ul class="list-disc pl-5 text-sm">
@@ -106,6 +111,24 @@
             <a href="{{ route('projects.show', $project->id) }}" class="text-sm text-gray-600 underline">{{ __('buttons.cancel') }}</a>
         </div>
     </form>
+
+    <div class="mt-10 rounded-lg border border-red-200 bg-red-50 p-5">
+        <h3 class="text-lg font-semibold text-red-800">{{ __('projects.delete.title') }}</h3>
+        <p class="mt-1 text-sm text-red-700">{{ __('projects.delete.description') }}</p>
+        <p class="mt-2 text-xs text-red-600">{{ __('projects.delete.payments_hint', ['count' => number_format($paymentCount)]) }}</p>
+
+        <form action="{{ route('projects.destroy', $project->id) }}" method="POST" class="mt-4 flex flex-wrap items-center gap-3"
+              data-confirm
+              data-confirm-title="{{ __('projects.delete.confirm_title') }}"
+              data-confirm-message="{{ __('projects.delete.confirm_message') }}">
+            @csrf
+            @method('DELETE')
+            <button type="submit" class="inline-flex items-center gap-2 rounded-md bg-red-600 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1">
+                {{ __('projects.delete.button') }}
+            </button>
+            <span class="text-xs text-red-700">{{ __('projects.delete.irreversible') }}</span>
+        </form>
+    </div>
 </div>
 @push('scripts')
 <script>

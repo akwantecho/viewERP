@@ -9,6 +9,16 @@
         $totalAvailable = $projects->sum('available_units_count');
         $soldPercentage = $totalUnits > 0 ? round(($totalReserved / max(1, $totalReserved + $totalAvailable)) * 100, 1) : 0;
     @endphp
+    @if (session('success'))
+        <div class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            {{ session('success') }}
+        </div>
+    @endif
+    @if (session('error'))
+        <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            {{ session('error') }}
+        </div>
+    @endif
 
     <section class="relative overflow-hidden rounded-3xl border border-[#1f2937]/10 bg-gradient-to-r from-[#1f2937]/95 via-[#374151] to-[#6b7280] text-white shadow-xl">
         <div class="absolute top-0 left-0 h-full w-full bg-[url('data:image/svg+xml,%3Csvg width%3D%27144%27 height%3D%27144%27 viewBox%3D%270 0 144 144%27 fill%3D%27none%27 xmlns%3D%27http://www.w3.org/2000/svg%27%3E%3Cpath d%3D%27M0 128H16V144H0V128Z%27 fill%3D%27rgba(255,255,255,0.06)%27/%3E%3C/svg%3E')] opacity-20"></div>

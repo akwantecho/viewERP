@@ -5,35 +5,38 @@ namespace App\Http\Controllers;
 use App\Models\Project;
 use App\Models\Unit;
 use App\Models\Floor;
+use App\Models\Booking;
+use App\Models\Payment;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-
+use Illuminate\Support\Facades\Log;
+use App\Services\ProjectDeletionService;
 
 
 class ProjectController extends Controller
 {
-    public function __construct()
-    {
+    public function __construct(
+        private ProjectDeletionService $projectDeletion,
+    ) {
         // Allow only super admin to access edit/update/saveStructure
         $this->middleware('super')->only(['create', 'store', 'edit', 'update', 'saveStructure', 'structureForm']);
     }
     public function index()
-{
-    $projects = Project::withCount([
-        'floors' => function ($query) {
-            $query->has('units');
-        },
-        'units',
-        'units as reserved_units_count' => function ($query) {
-            $query->whereIn('status', ['reserved', 'sold']);
-        },
-        'units as available_units_count' => function ($query) {
-            $query->where('status', 'available');
-        },
-    ])->get();
+    {
+        $projects = Project::withCount([
+            'floors' => function ($query) {
+                $query->has('units');
+            },
+            'units',
+            'units as reserved_units_count' => function ($query) {
+                $query->whereIn('status', ['reserved', 'sold']);
+            },
+            'units as available_units_count' => function ($query) {
+                $query->where('status', 'available');
+            },
+        ])->get();
 
-    return view('projects.index', compact('projects'));
-}
+        return view('projects.index', compact('projects'));
+    }
 
 
 
@@ -176,7 +179,12 @@ class ProjectController extends Controller
     public function edit(Project $project)
     {
         $project->load(['floors.units']);
-        return view('projects.edit', compact('project'));
+        $paymentCount = Payment::whereIn(
+            'booking_id',
+            Booking::where('project_id', $project->id)->select('id')
+        )->count();
+
+        return view('projects.edit', compact('project', 'paymentCount'));
     }
 
     public function update(Request $request, Project $project)
@@ -361,8 +369,29 @@ class ProjectController extends Controller
 
     public function destroy(Project $project)
     {
-        $project->delete();
-        return redirect()->route('projects.index')->with('success', 'Project deleted.');
+        try {
+            $summary = $this->projectDeletion->delete($project);
+        } catch (\Throwable $e) {
+            Log::error('Failed to delete project', [
+                'location'   => __METHOD__,
+                'class'      => static::class,
+                'project_id' => $project->id ?? null,
+                'user_id'    => optional(request()->user())->id,
+                'message'    => $e->getMessage(),
+                'trace'      => $e->getTraceAsString(),
+            ]);
+
+            return redirect()
+                ->route('projects.edit', $project->id)
+                ->with('error', __('projects.delete.error'));
+        }
+
+        $message = __('projects.delete.success', [
+            'name' => $project->name,
+            'payments' => $summary['payments_deleted'] ?? 0,
+        ]);
+
+        return redirect()->route('projects.index')->with('success', $message);
     }
 
    public function saveStructure(Request $request, Project $project)
