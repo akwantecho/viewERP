@@ -40,6 +40,7 @@
         body.sidebar-mini #app-sidebar .sidebar-link { justify-content: center; padding-left: 0.25rem; padding-right: 0.25rem; }
         body.sidebar-mini #app-sidebar .icon-slot { margin-inline-start: 0; margin-inline-end: 0; }
     </style>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('styles')
     @yield('head')
     <x-rich-text::styles theme="richtextlaravel" data-turbo-track="false" />

@@ -243,3 +243,31 @@
 </section>
 
 {{-- Delete confirmation is handled by the global script in layouts/app.blade.php --}}
+
+@push('styles')
+<style>
+    /* Table styling for note content display */
+    .prose table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1em 0;
+        font-size: 0.875em;
+    }
+
+    .prose table th,
+    .prose table td {
+        border: 1px solid #d1d5db;
+        padding: 0.5rem 0.75rem;
+        text-align: left;
+    }
+
+    .prose table th {
+        background: #f3f4f6;
+        font-weight: 600;
+    }
+
+    .prose table tr:hover td {
+        background: #f9fafb;
+    }
+</style>
+@endpush

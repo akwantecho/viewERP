@@ -78,20 +78,15 @@
                 >
             </div>
 
-            <!-- Rich Text Editor -->
+            <!-- Rich Text Editor (Tiptap) -->
             <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
                 <div class="p-6">
-                    <label for="note-content" class="block text-sm font-medium text-gray-700 mb-3">
+                    <label class="block text-sm font-medium text-gray-700 mb-3">
                         Content <span class="text-red-500">*</span>
                     </label>
-                    <x-trix-input
-                        id="note-content"
-                        name="content"
-                        value="{{ old('content') }}"
-                        placeholder="Start writing your note..."
-                        class="trix-content"
-                        style="min-height: 500px;"
-                    />
+                    <input type="hidden" name="content" id="note-content-input" value="{{ old('content') }}">
+                    <div id="tiptap-toolbar"></div>
+                    <div id="tiptap-editor" class="tiptap-editor-container min-h-[500px] border border-gray-200 rounded-xl p-4 bg-white focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500"></div>
                 </div>
             </div>
 
@@ -186,85 +181,58 @@
     </div>
 </div>
 
-<x-rich-text::styles theme="richtextlaravel" />
 
 @push('styles')
 <style>
-    /* Make Trix editor more spacious and comfortable */
-    trix-editor {
-        min-height: 500px !important;
+    /* Tiptap Editor Styles */
+    .tiptap-editor-container {
+        min-height: 500px;
         max-height: 70vh;
         overflow-y: auto;
-        padding: 1.5rem !important;
-        font-size: 1rem;
-        line-height: 1.75;
-        border: 1px solid #e5e7eb !important;
-        border-radius: 0.75rem !important;
-        background: #ffffff;
     }
 
-    trix-editor:focus {
+    .tiptap-editor {
+        min-height: 100%;
         outline: none;
-        border-color: #10b981 !important;
-        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
     }
 
-    /* Toolbar styling */
-    trix-toolbar {
-        border: 1px solid #e5e7eb !important;
-        border-radius: 0.75rem !important;
-        background: #f9fafb;
-        padding: 0.75rem !important;
-        margin-bottom: 1rem;
-        position: sticky;
-        top: 0;
-        z-index: 10;
+    .tiptap-editor p {
+        margin: 0.5em 0;
     }
 
-    trix-toolbar .trix-button-group {
-        border: none !important;
-        margin-bottom: 0;
-    }
-
-    trix-toolbar .trix-button {
-        border: 1px solid #d1d5db !important;
-        background: #ffffff !important;
-        border-radius: 0.5rem !important;
-        padding: 0.5rem !important;
-        margin: 0 0.25rem;
-        transition: all 0.2s;
-    }
-
-    trix-toolbar .trix-button:hover {
-        background: #f3f4f6 !important;
-        border-color: #10b981 !important;
-    }
-
-    trix-toolbar .trix-button.trix-active {
-        background: #10b981 !important;
-        color: white !important;
-        border-color: #10b981 !important;
-    }
-
-    /* Content styling */
-    trix-editor h1 {
+    .tiptap-editor h1 {
         font-size: 2em;
         font-weight: 700;
-        margin: 1em 0 0.5em;
+        margin: 0.67em 0;
     }
 
-    trix-editor h2 {
+    .tiptap-editor h2 {
         font-size: 1.5em;
         font-weight: 600;
         margin: 0.83em 0;
     }
 
-    trix-editor ul, trix-editor ol {
-        padding-left: 2em;
+    .tiptap-editor h3 {
+        font-size: 1.17em;
+        font-weight: 600;
         margin: 1em 0;
     }
 
-    trix-editor blockquote {
+    .tiptap-editor ul,
+    .tiptap-editor ol {
+        padding-left: 1.5em;
+        margin: 0.5em 0;
+    }
+
+    .tiptap-editor ul {
+        list-style-type: disc;
+    }
+
+    .tiptap-editor ol {
+        list-style-type: decimal;
+    }
+
+    .tiptap-editor blockquote {
         border-left: 4px solid #10b981;
         padding-left: 1em;
         margin: 1em 0;
@@ -272,24 +240,115 @@
         font-style: italic;
     }
 
-    trix-editor pre {
-        background: #f3f4f6;
+    .tiptap-editor pre {
+        background: #1f2937;
+        color: #f9fafb;
         padding: 1em;
         border-radius: 0.5rem;
         overflow-x: auto;
         margin: 1em 0;
+        font-family: monospace;
     }
 
-    trix-editor a {
+    .tiptap-editor code {
+        background: #f3f4f6;
+        padding: 0.2em 0.4em;
+        border-radius: 0.25rem;
+        font-family: monospace;
+        font-size: 0.9em;
+    }
+
+    .tiptap-editor pre code {
+        background: none;
+        padding: 0;
+    }
+
+    .tiptap-editor a {
         color: #10b981;
         text-decoration: underline;
     }
 
-    trix-editor img {
+    .tiptap-editor img {
         max-width: 100%;
         height: auto;
         border-radius: 0.5rem;
         margin: 1em 0;
+    }
+
+    /* Table Styles */
+    .tiptap-editor table {
+        border-collapse: collapse;
+        margin: 1em 0;
+        width: 100%;
+        table-layout: fixed;
+        overflow: hidden;
+    }
+
+    .tiptap-editor th,
+    .tiptap-editor td {
+        border: 2px solid #d1d5db;
+        padding: 0.5rem 0.75rem;
+        vertical-align: top;
+        box-sizing: border-box;
+        position: relative;
+        min-width: 1em;
+    }
+
+    .tiptap-editor th {
+        background: #f3f4f6;
+        font-weight: 600;
+        text-align: left;
+    }
+
+    .tiptap-editor td {
+        background: #fff;
+    }
+
+    .tiptap-editor .selectedCell:after {
+        z-index: 2;
+        position: absolute;
+        content: "";
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        background: rgba(16, 185, 129, 0.2);
+        pointer-events: none;
+    }
+
+    .tiptap-editor .column-resize-handle {
+        position: absolute;
+        right: -2px;
+        top: 0;
+        bottom: -2px;
+        width: 4px;
+        background-color: #10b981;
+        pointer-events: none;
+    }
+
+    .tiptap-editor.resize-cursor {
+        cursor: ew-resize;
+        cursor: col-resize;
+    }
+
+    /* Placeholder - styled by Tiptap extension */
+    .tiptap-editor .is-editor-empty:first-child::before {
+        color: #9ca3af;
+        float: left;
+        height: 0;
+        pointer-events: none;
+    }
+
+    /* Toolbar */
+    .tiptap-toolbar-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .tiptap-toolbar-btn svg {
+        width: 18px;
+        height: 18px;
     }
 </style>
 @endpush
@@ -303,9 +362,62 @@
     const tagInput = document.getElementById('note-tag-input');
     const colorPresets = document.querySelectorAll('.color-preset');
     const colorInput = document.getElementById('note-color');
+    const contentInput = document.getElementById('note-content-input');
     const storageKey = 'customer-note-draft-{{ $customer->id }}-new';
 
     let tags = [];
+    let editor = null;
+
+    // Initialize Tiptap Editor
+    let initAttempts = 0;
+    const maxAttempts = 50; // 5 seconds max wait
+
+    function initTiptapEditor() {
+        initAttempts++;
+
+        if (!window.TiptapEditor) {
+            if (initAttempts < maxAttempts) {
+                setTimeout(initTiptapEditor, 100);
+            } else {
+                console.error('TiptapEditor failed to load after 5 seconds');
+            }
+            return;
+        }
+
+        const editorElement = document.getElementById('tiptap-editor');
+        const toolbarElement = document.getElementById('tiptap-toolbar');
+
+        if (!editorElement || !toolbarElement) {
+            console.error('Tiptap elements not found');
+            return;
+        }
+
+        const initialContent = contentInput?.value || '';
+
+        try {
+            editor = window.TiptapEditor.createTiptapEditor({
+                element: editorElement,
+                content: initialContent,
+                placeholder: 'Start writing your note...',
+                onUpdate: (html) => {
+                    if (contentInput) contentInput.value = html;
+                    saveDraft();
+                }
+            });
+
+            window.TiptapEditor.createToolbar(editor, toolbarElement);
+
+            // Load draft content if exists
+            loadDraftContent();
+        } catch (e) {
+            console.error('Failed to initialize Tiptap editor:', e);
+        }
+    }
+
+    // Listen for tiptap-ready event as well
+    document.addEventListener('tiptap-ready', function() {
+        if (!editor) initTiptapEditor();
+    });
 
     // Tag management
     function renderTags() {
@@ -365,10 +477,9 @@
     // Auto-save draft
     function saveDraft() {
         try {
-            const trixEditor = document.querySelector('trix-editor');
             const payload = {
                 title: document.getElementById('note-title')?.value || '',
-                content: trixEditor ? trixEditor.value : '',
+                content: editor ? editor.getHTML() : (contentInput?.value || ''),
                 visibility: form.querySelector('select[name="visibility"]')?.value || 'team',
                 color: colorInput?.value || '#f8fafc',
                 is_pinned: form.querySelector('input[name="is_pinned"]')?.checked || false,
@@ -380,26 +491,28 @@
         }
     }
 
-    // Load draft
-    try {
-        const saved = localStorage.getItem(storageKey);
-        if (saved) {
-            const data = JSON.parse(saved);
-            if (data.title) document.getElementById('note-title').value = data.title;
-            if (data.visibility) form.querySelector('select[name="visibility"]').value = data.visibility;
-            if (data.color) colorInput.value = data.color;
-            if (typeof data.is_pinned === 'boolean') form.querySelector('input[name="is_pinned"]').checked = data.is_pinned;
-            if (Array.isArray(data.tags)) {
-                tags = data.tags;
-                renderTags();
+    // Load draft content
+    function loadDraftContent() {
+        try {
+            const saved = localStorage.getItem(storageKey);
+            if (saved) {
+                const data = JSON.parse(saved);
+                if (data.title) document.getElementById('note-title').value = data.title;
+                if (data.visibility) form.querySelector('select[name="visibility"]').value = data.visibility;
+                if (data.color) colorInput.value = data.color;
+                if (typeof data.is_pinned === 'boolean') form.querySelector('input[name="is_pinned"]').checked = data.is_pinned;
+                if (Array.isArray(data.tags)) {
+                    tags = data.tags;
+                    renderTags();
+                }
+                if (data.content && editor) {
+                    editor.commands.setContent(data.content);
+                    if (contentInput) contentInput.value = data.content;
+                }
             }
-            if (data.content) {
-                const trixEditor = document.querySelector('trix-editor');
-                if (trixEditor) trixEditor.value = data.content;
-            }
+        } catch (e) {
+            console.error('Draft load failed:', e);
         }
-    } catch (e) {
-        console.error('Draft load failed:', e);
     }
 
     // Auto-save interval
@@ -407,49 +520,15 @@
 
     // Clear draft on submit
     form?.addEventListener('submit', () => {
+        // Ensure content is captured before submit
+        if (editor && contentInput) {
+            contentInput.value = editor.getHTML();
+        }
         localStorage.removeItem(storageKey);
     });
 
-    // Trix upload handling
-    document.addEventListener('trix-attachment-add', function(event) {
-        const attachment = event.attachment;
-        if (attachment.file) {
-            uploadFile(attachment);
-        }
-    });
-
-    function uploadFile(attachment) {
-        const file = attachment.file;
-        const formData = new FormData();
-        formData.append('file', file);
-
-        fetch('{{ route('customers.notes.upload', $customer) }}', {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            },
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.location || data.url) {
-                attachment.setAttributes({
-                    url: data.location || data.url,
-                    href: data.location || data.url
-                });
-            } else if (data.error) {
-                alert('Upload failed: ' + data.error);
-                attachment.remove();
-            }
-        })
-        .catch(error => {
-            console.error('Upload error:', error);
-            alert('Upload failed. Please try again.');
-            attachment.remove();
-        });
-    }
-
     renderTags();
+    initTiptapEditor();
 })();
 </script>
 @endpush
